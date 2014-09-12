@@ -1,0 +1,41 @@
+{
+	"resources" : 0,
+	"tasks" : {
+		"periodic1" : {
+		       "runtime" : 20000,
+		       "period" : 100000,
+		       "grub" : true,
+		       "cpus" : [0],
+		       "phases" : {
+				"r0" : { "duration" : 15000 },
+		       }
+		},
+		"periodic2" : {
+		       "runtime" : 10000,
+		       "period" : 50000,
+		       "grub" : true,
+		       "cpus" : [0],
+		       "phases" : {
+				"r0" : { "duration" : 8000 },
+		       }
+		},
+		"periodic3" : {
+		       "runtime" : 15000,
+		       "period" : 75000,
+		       "cpus" : [0],
+		       "phases" : {
+				"r0" : { "duration" : 10000 },
+		       }
+		}
+	},
+	"global" : {
+		"default_policy" : "SCHED_DEADLINE",
+		"duration" : 10,
+		"logdir" : "./log",
+		"log_basename" : "rt-app",
+		"lock_pages" : true,
+		"frag" : 1,
+		"ftrace" : true,
+		"calibration" : 140
+	}
+}
