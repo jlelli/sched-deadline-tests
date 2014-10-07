@@ -5,24 +5,20 @@ ALL_MASK="0 1 2 3 4"
 A7_MASK="2 3 4"
 A15_MASK="0 1"
 ONE_A7_ONE_A15_NMASK="2 3 4"
-TRACE_CMD="/usr/local/bin/trace-cmd"
+TRACE_CMD="trace-cmd"
 tracing=0
 rt_runtime=-1
 
 print_test_info() {
-  echo "************************************************"
-  echo "* ${TNAME}"
-  echo "*"
-  echo "* ${TINFO}"
-  echo "*"
-  echo "* Clusters: A7 [${A7_MASK}] A15 [${A15_MASK}]"
-  echo "*"
-  echo "************************************************"
-  echo
+  if [ -n "$TDESC" ]; then
+    echo "$TDESC"
+  else
+    echo "Test has no description."
+  fi
 }
 
 trace_start() {
-  if [ ${TRACE} -eq 1 ]; then
+  if [[ -n "$TRACE" && ${TRACE} -eq 1 ]]; then
     tracing=1
     events=""
     for e in ${EVENTS}; do
@@ -49,6 +45,7 @@ trace_extract() {
 }
 
 trace_write() {
+  echo "$1"
   if [ ${tracing} -eq 1 ]; then
     echo $1 > /sys/kernel/debug/tracing/trace_marker
   fi
@@ -70,13 +67,12 @@ test_passed() {
 
 disable_ac() {
   echo "disabling admission control"
-  rt_runtime=$(cat /proc/sys/kernel/sched_rt_runtime_us)
   echo -1 > /proc/sys/kernel/sched_rt_runtime_us
 }
 
 enable_ac() {
   echo "enabling admission control"
-  echo ${rt_runtime} > /proc/sys/kernel/sched_rt_runtime_us
+  echo 950000 > /proc/sys/kernel/sched_rt_runtime_us
 }
 
 set_cpufreq() {
