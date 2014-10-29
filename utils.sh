@@ -51,6 +51,10 @@ trace_write() {
   fi
 }
 
+dump_on_oops() {
+  echo 1 > /proc/sys/kernel/ftrace_dump_on_oops
+}
+
 test_failed() {
   echo "TEST_FAILED"
   trace_write "TEST_FAILED"
