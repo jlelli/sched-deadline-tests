@@ -45,7 +45,6 @@ trace_extract() {
 }
 
 trace_write() {
-  echo "$1"
   if [ ${tracing} -eq 1 ]; then
     echo $1 > /sys/kernel/debug/tracing/trace_marker
   fi
@@ -122,4 +121,44 @@ turn_on_cpu() {
 log() {
   echo $1
   trace_write $1
+}
+
+random() {
+  local min=${1-1}
+  local max=${2-100}
+
+  echo $(( (RANDOM % max) + min))
+}
+
+# Written by Locutus for bash demonstration.
+# Found at http://it.toolbox.com/blogs/locutus/bash-bits-nibbles-and-bytes-a-rotating-cursor-while-you-wait-22867
+
+rotateCursor()
+{
+  case $toggle
+  in
+    1)
+      echo -n $1" \ "
+      echo -ne "\r"
+      toggle="2"
+    ;;
+
+    2)
+      echo -n $1" | "
+      echo -ne "\r"
+      toggle="3"
+    ;;
+
+    3)
+      echo -n $1" / "
+      echo -ne "\r"
+      toggle="4"
+    ;;
+
+    *)
+      echo -n $1" - "
+      echo -ne "\r"
+      toggle="1"
+    ;;
+  esac
 }
