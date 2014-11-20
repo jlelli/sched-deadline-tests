@@ -1,0 +1,17 @@
+*~
+.*.swp
+
+*.dat
+*.out
+
+basic/cpuhog
+basic/periodic_yield
+
+grub/test-cpuhog.out
+grub/test-running-bw.out
+
+prio-inherit/pthread_test
+
+sched-domains/burn
+sched-domains/reset
+sched-domains/sched_setattr
