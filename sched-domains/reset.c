@@ -31,8 +31,13 @@ struct sched_attr {
         u_int64_t sched_period;
 };
 
+#ifndef __NR_sched_setattr
 #define __NR_sched_setattr		380
+#endif
+
+#ifndef __NR_sched_getattr
 #define __NR_sched_getattr		381
+#endif
 
 #ifndef SCHED_DEADLINE
 #define SCHED_DEADLINE          6
