@@ -1,7 +1,7 @@
-all: burn reset sched_setattr
+all: burn
 
 %: %.c
 	gcc -o $@ $^
 
 clean:
-	rm -f burn reset sched_setattr
+	rm -f burn reset
