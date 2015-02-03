@@ -38,13 +38,15 @@ trace_stop() {
 
 trace_extract() {
   if [ ${tracing} -eq 1 ]; then
-    ${TRACE_CMD} extract -o trace-${TNAME}.dat >>${TNAME}.out 2>&1
+    ${TRACE_CMD} extract -o ${TNAME}.dat >>${TNAME}.out 2>&1
+    echo "trace available: ${TNAME}.dat"
   fi
 
   tracing=0
 }
 
 trace_write() {
+  echo $1
   if [ ${tracing} -eq 1 ]; then
     echo $1 > /sys/kernel/debug/tracing/trace_marker
   fi
