@@ -22,6 +22,8 @@ CPUSET_DIR=/sys/fs/cgroup
 tear_down() {
   trace_write "kill $PID"
   kill -9 $PID
+  sleep 1
+  rmdir ${CPUSET_DIR}/cpusetA
   
   trace_stop
   trace_extract
