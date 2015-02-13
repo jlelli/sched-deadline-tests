@@ -28,7 +28,16 @@ CPUSET_DIR=/sys/fs/cgroup
 tear_down() {
   trace_write "kill $PID1 $PID2 $PID3 $PID4"
   kill -9 $PID1 $PID2 $PID3 $PID4
-  
+  sleep 1
+
+  trace_stop
+  trace_extract
+}
+
+tear_down_nokill() {
+  echo $$ > ${CPUSET_DIR}/tasks
+  rmdir ${CPUSET_DIR}/cpuset-work
+
   trace_stop
   trace_extract
 }
@@ -54,6 +63,7 @@ mkdir ${CPUSET_DIR}/cpusetB
 enable_ac
 dump_on_oops
 trace_start
+trace_write "TEST $TNAME START"
 
 trace_write "Configuring exclusive cpusets"
 /bin/echo 1 > ${CPUSET_DIR}/cpuset.cpu_exclusive
@@ -267,7 +277,37 @@ fi
 trace_write "Sleep for 1s"
 sleep 1
 
+trace_write "kill $PID1 $PID2 $PID3 $PID4"
+kill -9 $PID1 $PID2 $PID3 $PID4
+
+trace_write "Sleep for 1s"
+sleep 1
+
+rmdir ${CPUSET_DIR}/cpusetA
+if [ $? -eq 0 ]; then
+  trace_write "OK: cpusetA removed"
+else
+  trace_write "FAIL: cpusetA couldn't be removed"
+  trace_write "Sleep for 1s"
+  sleep 1
+  tear_down_nokill
+  exit 1
+fi
+
+rmdir ${CPUSET_DIR}/cpusetB
+if [ $? -eq 0 ]; then
+  trace_write "OK: cpusetB removed"
+else
+  trace_write "FAIL: cpusetB couldn't be removed"
+  trace_write "Sleep for 1s"
+  sleep 1
+  tear_down_nokill
+  exit 1
+fi
+
 trace_write "PASS"
-tear_down
+trace_write "TEST $TNAME FINISH"
+
+tear_down_nokill
 
 exit 0
