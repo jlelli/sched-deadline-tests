@@ -13,7 +13,7 @@ TDESC="
 
 "
 TRACE=${1-0}
-SWITCHES=${2-100}
+SWITCHES=${2-30}
 EVENTS="sched_wakeup* sched_switch sched_migrate*"
 
 print_test_info
@@ -29,10 +29,10 @@ trace_write "Going to perform $SWITCHES sched_setscheduler on task $PID"
 for i in `seq 0 $SWITCHES`; do
   if [[ $((i % 2)) == 0 ]]; then
     usec=$(random 1 10)
-    trace_write "setting $PID to (${usec},100)"
+    trace_write "setting $PID to (${usec},100) [$(( $SWITCHES - $i)) to go]"
     schedtool -E -t ${usec}000000:100000000 $PID
   else
-    trace_write "setting $PID to normal"
+    trace_write "setting $PID to normal [$(( $SWITCHES - $i)) to go]"
     schedtool -N $PID
   fi
 
