@@ -3,5 +3,11 @@ all: pthread_test
 pthread_test: pthread_test.c
 	gcc -o $@ $^ -lpthread
 
+tests:
+	./test_prio_inherit.sh
+
+tests-trace:
+	./test_prio_inherit.sh 1
+
 clean:
-	rm -f pthread_test
+	rm -f pthread_test *.out *.dat
