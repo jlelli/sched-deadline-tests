@@ -4,9 +4,11 @@ pthread_test: pthread_test.c
 	gcc -o $@ $^ -lpthread
 
 tests:
+	./test_prio_normal.sh
 	./test_prio_inherit.sh
 
 tests-trace:
+	./test_prio_normal.sh 1
 	./test_prio_inherit.sh 1
 
 clean:

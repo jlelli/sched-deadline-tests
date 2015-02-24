@@ -17,9 +17,6 @@ EVENTS="sched_wakeup* sched_switch sched_migrate*"
 CPUSET_DIR=/sys/fs/cgroup
 
 tear_down() {
-  trace_write "kill $PID"
-  kill -9 $PID
-  
   trace_stop
   trace_extract
 }
@@ -31,8 +28,8 @@ trace_start
 
 trace_write "TEST $TNAME START"
 
-trace_write "Launch pthread_test [inherit]"
-./pthread_test inherit
+trace_write "Launch pthread_test [normal]"
+./pthread_test
 
 trace_write "PASS"
 trace_write "TEST $TNAME FINISH"
