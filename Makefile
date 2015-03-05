@@ -1,4 +1,4 @@
-SUBDIRS = basic prio-inherit sched-domains
+SUBDIRS = basic prio-inherit sched-domains hotplug
 
 all:
 	for dir in $(SUBDIRS); do \
