@@ -13,7 +13,7 @@ TDESC="
 
 "
 TRACE=${1-0}
-RUNS=3
+RUNS=5
 EVENTS="sched_wakeup* sched_switch sched_migrate*"
 CPUSET_DIR=/sys/fs/cgroup
 
@@ -32,7 +32,6 @@ print_test_info
 mount -t cgroup -o cpuset cpuset ${CPUSET_DIR} >/dev/null 2>&1
 mkdir -p ${CPUSET_DIR}/cpusetA
 
-dump_on_oops
 trace_start
 
 trace_write "Configuring exclusive cpusets"
@@ -75,8 +74,10 @@ fi
 trace_write "Sleep for 2s"
 sleep 2
 
+ONLINE_CPUS=3
 for i in $(seq 1 ${RUNS}); do
   trace_write "run ${i}"
+  trace_write "online cpus: ${ONLINE_CPUS}"
 
   CPU=$(ps -o pid,psr | grep ${PID} | awk ' {print $2} ')
   trace_write "task ${PID} runs on CPU ${CPU}"
@@ -85,20 +86,23 @@ for i in $(seq 1 ${RUNS}); do
   trace_write "turning off CPU ${CPU}"
   echo 0 > /sys/devices/system/cpu/cpu${CPU}/online
   RES=$?
-  if [ $CPU -ne 3 ] && [ $RES -ne 0 ]; then
+  if [ $ONLINE_CPUS -gt 1 ] && [ $RES -ne 0 ]; then
     trace_write "FAIL: couldn't turn CPU ${CPU} off"
     tear_down
     exit 1
   fi
-  if [ $CPU -eq 3 ] && [ $RES -ne 1 ]; then
+  if [ $ONLINE_CPUS -eq 1 ] && [ $RES -ne 1 ]; then
     trace_write "FAIL: CPU ${CPU} has been turned off!"
     tear_down
     exit 1
   fi
   
   sleep 1
-  trace_write "turning on CPU ${CPU}"
-  echo 1 > /sys/devices/system/cpu/cpu${CPU}/online
+  if [ $ONLINE_CPUS -gt 1 ]; then
+    trace_write "turning on CPU ${CPU}"
+    echo 1 > /sys/devices/system/cpu/cpu${CPU}/online
+    ONLINE_CPUS=$((ONLINE_CPUS-1))
+  fi
 
   sleep 1
 done
