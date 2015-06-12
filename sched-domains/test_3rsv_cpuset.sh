@@ -3,32 +3,34 @@
 TFULL=`basename $0`
 TNAME=${TFULL%.*}
 TDESC="
-###########################################
+###############################################################################
 #  
 #    test: $TNAME
 #
 #    Test AC over exclusive cpusets.
 #
-#    Launch 3 cpu hog tasks. Attach them to
-#    several reservations. Try to move them
-#    into an exclusive cpuset. Last one has
-#    to fail as it doesn't fit with its
-#    researvation parameters. Decrease now
-#    the bandwidth of the first one to make
-#    for the last one. Move last one into
-#    the exclusive cpuset.
+#    Launch 3 cpu hog tasks. Attach them to several reservations. Try to move
+#    them into an exclusive cpuset. Last one has to fail as it doesn't fit with
+#    its researvation parameters. Decrease now the bandwidth of the first one
+#    to make for the last one. Move last one into the exclusive cpuset.
 #
-###########################################
+###############################################################################
 
 "
 TRACE=${1-0}
 EVENTS="sched_wakeup* sched_switch sched_migrate*"
 CPUSET_DIR=/sys/fs/cgroup
 
+pass() {
+  trace_write "PASS"
+}
+
 tear_down() {
-  trace_write "kill $PID"
-  kill -9 $PID1 $PID2 $PID3
-  
+  trace_write "kill $PID1 $PID2 $PID3"
+  kill -TERM $PID1 $PID2 $PID3
+  sleep 1
+  rmdir ${CPUSET_DIR}/cpusetA
+
   trace_stop
   trace_extract
 }
@@ -60,7 +62,8 @@ PID2=$!
 ./burn &
 PID3=$!
 
-trace_write "pids: $PID1 $PID2 $PID3"
+trace_write "Sleep for 2s"
+sleep 2
 
 trace_write "Attaching a (10,20) reservation to $PID1"
 # budget 10ms, period 20ms
@@ -93,7 +96,7 @@ trace_write "Attaching a (4,20) reservation to $PID3"
 #
 schedtool -E -t 4000000:20000000 $PID3
 if [ $? -ne 0 ]; then
-  trace_write "FAIL: couldn't attachd $PID2 to (8,20)"
+  trace_write "FAIL: couldn't attachd $PID3 to (4,20)"
   tear_down
   exit 1
 fi
@@ -162,7 +165,6 @@ fi
 trace_write "Sleep for 2s"
 sleep 2
 
-trace_write "PASS"
 tear_down
 
 exit 0
