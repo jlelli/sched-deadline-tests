@@ -13,7 +13,7 @@ TDESC="
 
 "
 TRACE=${1-0}
-EVENTS="sched_wakeup* sched_switch sched_migrate*"
+EVENTS="sched_wakeup* sched_switch sched_migrate* sched_pi_setprio"
 CPUSET_DIR=/sys/fs/cgroup
 
 tear_down() {
