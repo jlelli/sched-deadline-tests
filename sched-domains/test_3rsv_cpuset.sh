@@ -4,7 +4,7 @@ TFULL=`basename $0`
 TNAME=${TFULL%.*}
 TDESC="
 ###############################################################################
-#  
+#
 #    test: $TNAME
 #
 #    Test AC over exclusive cpusets.
@@ -30,6 +30,26 @@ tear_down() {
   kill -TERM $PID1 $PID2 $PID3
   sleep 1
   rmdir ${CPUSET_DIR}/cpusetA
+  if [ $? -ne 0 ]; then
+    trace_write "ERROR: failed to remove cpusetA"
+    exit 1
+  fi
+
+  trace_write "Moving all tasks back in root cpuset"
+  for t in `cat ${CPUSET_DIR}/cpusetB/tasks`; do
+    /bin/echo $t > ${CPUSET_DIR}/tasks >/dev/null 2>&1
+  done
+  sleep 1
+  rmdir ${CPUSET_DIR}/cpusetB
+  if [ $? -ne 0 ]; then
+    trace_write "ERROR: failed to remove cpusetB"
+    exit 1
+  fi
+
+  sleep 1
+  trace_write "De-configuring exclusive cpusets"
+  /bin/echo 1 > ${CPUSET_DIR}/cpuset.sched_load_balance
+  /bin/echo 0 > ${CPUSET_DIR}/cpuset.cpu_exclusive
 
   trace_stop
   trace_extract
@@ -37,8 +57,9 @@ tear_down() {
 
 print_test_info
 
-mount -t cgroup -o cpuset cpuset ${CPUSET_DIR} >/dev/null 2>&1
+mount -t cgroup -o cpuset cpuset ${CPUSET_DIR}
 mkdir -p ${CPUSET_DIR}/cpusetA
+mkdir -p ${CPUSET_DIR}/cpusetB
 
 dump_on_oops
 trace_start
@@ -47,11 +68,21 @@ trace_write "Configuring exclusive cpusets"
 /bin/echo 1 > ${CPUSET_DIR}/cpuset.cpu_exclusive
 /bin/echo 0 > ${CPUSET_DIR}/cpuset.sched_load_balance
 
-trace_write "Configuring cpuset: cpusetA[2]"
-/bin/echo 2 >  ${CPUSET_DIR}/cpusetA/cpuset.cpus
+trace_write "Configuring cpuset: cpusetA[3]"
+/bin/echo 3 >  ${CPUSET_DIR}/cpusetA/cpuset.cpus
 /bin/echo 0 > ${CPUSET_DIR}/cpusetA/cpuset.mems
 /bin/echo 1 > ${CPUSET_DIR}/cpusetA/cpuset.cpu_exclusive
-/bin/echo 1 > ${CPUSET_DIR}/cpusetA/cpuset.mem_exclusive
+
+trace_write "Configuring cpuset: cpusetB[0-2]"
+/bin/echo 0-2 >  ${CPUSET_DIR}/cpusetB/cpuset.cpus
+/bin/echo 0 > ${CPUSET_DIR}/cpusetB/cpuset.mems
+/bin/echo 1 > ${CPUSET_DIR}/cpusetB/cpuset.cpu_exclusive
+/bin/echo 1 > ${CPUSET_DIR}/cpusetB/cpuset.sched_load_balance
+
+trace_write "Moving all tasks in cpusetB"
+for t in `cat ${CPUSET_DIR}/tasks`; do
+	/bin/echo $t > ${CPUSET_DIR}/cpusetB/tasks >/dev/null 2>&1
+done
 
 trace_write "Launch 3 processes"
 
@@ -166,5 +197,6 @@ trace_write "Sleep for 2s"
 sleep 2
 
 tear_down
+trace_write "PASS"
 
 exit 0
