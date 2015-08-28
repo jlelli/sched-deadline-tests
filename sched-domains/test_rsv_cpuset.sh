@@ -50,8 +50,6 @@ tear_down() {
 print_test_info
 
 mount -t cgroup -o cpuset cpuset ${CPUSET_DIR}
-mkdir -p ${CPUSET_DIR}/cpusetA
-mkdir -p ${CPUSET_DIR}/cpusetB
 
 dump_on_oops
 trace_start
@@ -60,13 +58,16 @@ trace_write "Configuring exclusive cpusets"
 /bin/echo 1 > ${CPUSET_DIR}/cpuset.cpu_exclusive
 /bin/echo 0 > ${CPUSET_DIR}/cpuset.sched_load_balance
 
+mkdir -p ${CPUSET_DIR}/cpusetA
+mkdir -p ${CPUSET_DIR}/cpusetB
+
 trace_write "Configuring cpuset: cpusetA[3]"
 /bin/echo 3 >  ${CPUSET_DIR}/cpusetA/cpuset.cpus
 /bin/echo 0 > ${CPUSET_DIR}/cpusetA/cpuset.mems
 /bin/echo 1 > ${CPUSET_DIR}/cpusetA/cpuset.cpu_exclusive
 
-trace_write "Configuring cpuset: cpusetB[0-2]"
-/bin/echo 0-2 >  ${CPUSET_DIR}/cpusetB/cpuset.cpus
+trace_write "Configuring cpuset: cpusetB[0-2,4]"
+/bin/echo 0,1,2,4 >  ${CPUSET_DIR}/cpusetB/cpuset.cpus
 /bin/echo 0 > ${CPUSET_DIR}/cpusetB/cpuset.mems
 /bin/echo 1 > ${CPUSET_DIR}/cpusetB/cpuset.cpu_exclusive
 /bin/echo 1 > ${CPUSET_DIR}/cpusetB/cpuset.sched_load_balance

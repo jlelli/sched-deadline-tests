@@ -1,7 +1,9 @@
+CC=arm-linux-gnueabi-gcc
+
 all: cpuhog
 
 cpuhog: cpuhog.c
-	gcc -o $@ $^
+	$(CC) -o $@ $^ --static
 
 tests:
 	./test_hp_migration.sh

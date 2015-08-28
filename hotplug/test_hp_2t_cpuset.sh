@@ -20,8 +20,8 @@ EVENTS="sched_wakeup* sched_switch sched_migrate*"
 CPUSET_DIR=/sys/fs/cgroup
 
 tear_down() {
-  trace_write "kill $PID"
-  kill -TERM $PID
+  trace_write "kill $PID1 $PID2"
+  kill -TERM $PID1 $PID2
   sleep 1
   rmdir ${CPUSET_DIR}/cpusetA
   if [ $? -ne 0 ]; then
@@ -82,25 +82,42 @@ for t in `cat ${CPUSET_DIR}/tasks`; do
   /bin/echo $t > ${CPUSET_DIR}/cpuset-work/tasks >/dev/null 2>&1
 done
 
-trace_write "Launch 1 process"
-
+trace_write "Launch 2 processes"
 ./cpuhog &
-PID=$!
+PID1=$!
+./cpuhog &
+PID2=$!
 
-trace_write "pid: $PID"
-
+trace_write "pid1: $PID1"
 trace_write "Attaching a (.05,.10) reservation to $PID"
-
 # budget 50us, period 100us
 #
-schedtool -E -t 50000:100000 $PID
+schedtool -E -t 50000:100000 $PID1
 
 trace_write "Sleep for 1s"
 sleep 1
 
-trace_write "moving ${PID} to cpusetA"
+trace_write "pid2: $PID2"
+trace_write "Attaching a (.02,.10) reservation to $PID2"
+# budget 20us, period 100us
+#
+schedtool -E -t 20000:100000 $PID2
 
-/bin/echo $PID > $CPUSET_DIR/cpusetA/tasks
+trace_write "Sleep for 1s"
+sleep 1
+
+trace_write "moving ${PID1} and ${PID2} to cpusetA"
+
+/bin/echo $PID1 > $CPUSET_DIR/cpusetA/tasks
+if [ $? -eq 0 ]; then
+  trace_write "Task moved to new cpuset"
+else
+  trace_write "FAIL: task couldn't attach"
+  tear_down
+  exit 1
+fi
+
+/bin/echo $PID2 > $CPUSET_DIR/cpusetA/tasks
 if [ $? -eq 0 ]; then
   trace_write "Task moved to new cpuset"
 else
@@ -118,7 +135,7 @@ for i in $(seq 1 ${RUNS}); do
   trace_write "online cpus: ${ONLINE_CPUS}"
 
   #CPU=$(ps -o pid,psr | grep ${PID} | awk ' {print $2} ')
-  CPU=$(cat /proc/${PID}/stat | awk ' {print $39} ')
+  CPU=$(cat /proc/${PID1}/stat | awk ' {print $39} ')
   trace_write "task ${PID} runs on CPU ${CPU}"
   trace_write "turning off CPU ${CPU}"
   /bin/echo 0 > /sys/devices/system/cpu/cpu${CPU}/online

@@ -1,7 +1,9 @@
-all: burn tests
+CC=arm-linux-gnueabi-gcc
+
+all: burn
 
 %: %.c
-	gcc -o $@ $^
+	$(CC) -o $@ $^ --static
 
 tests:
 	./test_rsv_cpuset.sh

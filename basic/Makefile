@@ -1,10 +1,13 @@
+#CC=arm-linux-gnueabi-gcc
+CC=aarch64-linux-gnu-gcc
+
 all: cpuhog periodic_yield
 
 cpuhog: cpuhog.c
-	gcc -o $@ $^
+	$(CC) -o $@ $^ --static
 
 periodic_yield: periodic_yield.c
-	gcc -o $@ $^ -lpthread
+	$(CC) -o $@ $^ -lpthread --static
 
 tests:
 	./test_cpuhog_rsv.sh

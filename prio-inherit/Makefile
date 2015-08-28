@@ -1,7 +1,9 @@
+CC=arm-linux-gnueabi-gcc
+
 all: pthread_test
 
 pthread_test: pthread_test.c
-	gcc -o $@ $^ -lpthread
+	$(CC) -o $@ $^ -lpthread
 
 tests:
 	./test_prio_normal.sh
