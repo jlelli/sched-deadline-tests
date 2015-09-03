@@ -1,4 +1,4 @@
-SUBDIRS=basic prio-inherit sched-domains group-sched
+SUBDIRS=basic prio-inherit sched-domains hotplug group-sched
 WORKDIR=/home/root
 PLATFORM=tc2
 TARGET=$(shell platip $(PLATFORM))
