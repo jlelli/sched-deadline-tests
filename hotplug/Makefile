@@ -1,4 +1,8 @@
-CC=arm-linux-gnueabi-gcc
+# To build:
+#
+# CROSS_COMPILE={arm-linux-gnueabi-,aarch64-linux-gnu-} make
+CROSS_COMPILE?=
+CC=$(CROSS_COMPILE)gcc
 
 all: cpuhog
 

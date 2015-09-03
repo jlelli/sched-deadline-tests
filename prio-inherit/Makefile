@@ -1,9 +1,14 @@
-CC=arm-linux-gnueabi-gcc
+# To build:
+#
+# CROSS_COMPILE={arm-linux-gnueabi-,aarch64-linux-gnu-} make
+CROSS_COMPILE?=
+CC=$(CROSS_COMPILE)gcc
+
 
 all: pthread_test
 
 pthread_test: pthread_test.c
-	$(CC) -o $@ $^ -lpthread
+	$(CC) -o $@ $^ -lpthread --static
 
 tests:
 	./test_prio_normal.sh
