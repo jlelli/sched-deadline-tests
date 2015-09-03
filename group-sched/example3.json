@@ -1,0 +1,24 @@
+{
+	"tasks" : {
+		"thread0" : {
+			"instance" : 1,
+			"loop" : -1,
+			"run" :   20000,
+			"timer" : { "ref" : "unique", "period" : 100000 }
+		},
+		"thread1" : {
+			"instance" : 1,
+			"loop" : -1,
+			"run" :   20000,
+			"timer" : { "ref" : "unique", "period" : 100000 }
+		}
+	},
+	"global" : {
+		"duration" : 5,
+		"calibration" : "CPU0",
+		"default_policy" : "SCHED_FIFO",
+		"pi_enabled" : false,
+		"lock_pages" : false,
+		"gnuplot" : false
+	}
+}
