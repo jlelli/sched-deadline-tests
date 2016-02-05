@@ -5,7 +5,7 @@ TARGET=$(shell platip $(PLATFORM))
 
 all:
 	for dir in $(SUBDIRS); do \
-		(scp $(TARGET):$(WORKDIR)/tests/$$dir/*.dat .); \
+		(scp root@$(TARGET):$(WORKDIR)/tests/$$dir/*.dat .); \
 	done
 
 clean:

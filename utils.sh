@@ -53,6 +53,7 @@ trace_write() {
 }
 
 dump_on_oops() {
+  echo 50000 > /sys/kernel/debug/tracing/buffer_size_kb
   echo 1 > /proc/sys/kernel/ftrace_dump_on_oops
 }
 
