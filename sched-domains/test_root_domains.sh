@@ -38,73 +38,43 @@ trace_write "pid: $PID"
 trace_write "Attaching a (20,200) reservation to $PID"
 schedtool -E -t 20000000:200000000 $PID
 
-grep dl_ /proc/sched_debug
 trace_write "Sleep for 1s"
 sleep 1
+grep -A4 dl_rq /proc/sched_debug
 
 trace_write "disabling sched_load_balance"
 echo 0 >/sys/fs/cgroup/cpuset.sched_load_balance
-grep dl_ /proc/sched_debug
 trace_write "Sleep for 1s"
 sleep 1
+grep -A4 dl_rq /proc/sched_debug
 
 trace_write "enabling sched_load_balance"
 echo 1 >/sys/fs/cgroup/cpuset.sched_load_balance
-grep dl_ /proc/sched_debug
 trace_write "Sleep for 1s"
 sleep 1
-
-trace_write "creating my_cpuset"
-mkdir -p ${CPUSET_DIR}/my_cpuset
-grep dl_ /proc/sched_debug
-trace_write "Sleep for 1s"
-sleep 1
-
-trace_write "disabling sched_load_balance"
-echo 0 >/sys/fs/cgroup/cpuset.sched_load_balance
-grep dl_ /proc/sched_debug
-trace_write "Sleep for 1s"
-sleep 1
-
-trace_write "enabling sched_load_balance"
-echo 1 >/sys/fs/cgroup/cpuset.sched_load_balance
-grep dl_ /proc/sched_debug
-trace_write "Sleep for 1s"
-sleep 1
-
-trace_write "Moving task $PID in my_cpuset"
-/bin/echo $PID > ${CPUSET_DIR}/my_cpuset/cgroup.procs
-
-trace_write "disabling sched_load_balance"
-echo 0 >/sys/fs/cgroup/cpuset.sched_load_balance
-grep dl_ /proc/sched_debug
-trace_write "Sleep for 1s"
-sleep 1
-
-trace_write "enabling sched_load_balance"
-echo 1 >/sys/fs/cgroup/cpuset.sched_load_balance
-grep dl_ /proc/sched_debug
-trace_write "Sleep for 1s"
-sleep 1
+grep -A4 dl_rq /proc/sched_debug
 
 trace_write "turning off CPU1"
 /bin/echo 0 > /sys/devices/system/cpu/cpu1/online
 trace_write "turning off CPU3"
 /bin/echo 0 > /sys/devices/system/cpu/cpu3/online
-grep dl_ /proc/sched_debug
 trace_write "Sleep for 1s"
 sleep 1
+grep -A4 dl_rq /proc/sched_debug
 
 trace_write "turning on CPU1"
 /bin/echo 1 > /sys/devices/system/cpu/cpu1/online
 trace_write "turning on CPU3"
 /bin/echo 1 > /sys/devices/system/cpu/cpu3/online
-grep dl_ /proc/sched_debug
 trace_write "Sleep for 1s"
 sleep 1
+grep -A4 dl_rq /proc/sched_debug
 
-trace_write "Moving task $PID in root cpuset"
-/bin/echo $PID > ${CPUSET_DIR}/cgroup.procs
+trace_write "creating my_cpuset"
+mkdir -p ${CPUSET_DIR}/my_cpuset
+trace_write "Sleep for 1s"
+sleep 1
+grep -A4 dl_rq /proc/sched_debug
 
 trace_write "Configuring exclusive cpusets"
 /bin/echo 1 > ${CPUSET_DIR}/cpuset.cpu_exclusive
@@ -117,19 +87,21 @@ trace_write "Configuring cpuset: cpusetA[3]"
 
 trace_write "Moving task $PID in my_cpuset"
 /bin/echo $PID > ${CPUSET_DIR}/my_cpuset/cgroup.procs
-grep dl_ /proc/sched_debug
 trace_write "Sleep for 1s"
 sleep 1
-
-trace_write "Deconfiguring exclusive cpusets"
-/bin/echo 1 > ${CPUSET_DIR}/cpuset.sched_load_balance
-/bin/echo 0 > ${CPUSET_DIR}/cpuset.cpu_exclusive
+grep -A4 dl_rq /proc/sched_debug
 
 trace_write "kill $PID"
 kill -TERM $PID
+sleep 1
+grep -A4 dl_rq /proc/sched_debug
+
+trace_write "Deconfiguring exclusive cpusets"
 rmdir ${CPUSET_DIR}/my_cpuset
 sleep 1
-grep dl_ /proc/sched_debug
+/bin/echo 1 > ${CPUSET_DIR}/cpuset.sched_load_balance
+/bin/echo 0 > ${CPUSET_DIR}/cpuset.cpu_exclusive
+grep -A4 dl_rq /proc/sched_debug
 
 tear_down
 
