@@ -25,6 +25,7 @@ LIST_ONLY=0
 TRACE_ENABLE=0
 STOP_ON_FAIL=0
 OUTPUT_FORMAT="text"  # text, tap, or junit
+TEST_TIMEOUT=300      # 5 minutes default timeout per test
 
 # Test categories
 CATEGORIES=(
@@ -51,6 +52,7 @@ OPTIONS:
     -T, --trace                Enable kernel tracing for tests
     -s, --stop-on-fail         Stop on first test failure
     -f, --format FORMAT        Output format: text, tap, junit (default: text)
+    --timeout SECONDS          Timeout per test in seconds (default: 300)
     -h, --help                 Show this help message
 
 CATEGORIES:
@@ -180,12 +182,18 @@ run_test() {
     local output_file="/tmp/test_output_$$.log"
     local start_time=$(date +%s)
 
+    # Run with timeout to prevent hanging tests
     if [ $VERBOSE -eq 1 ]; then
-        "./$test_name" $TRACE_ENABLE 2>&1 | tee "$output_file"
+        timeout $TEST_TIMEOUT "./$test_name" $TRACE_ENABLE 2>&1 | tee "$output_file"
         local exit_code=${PIPESTATUS[0]}
     else
-        "./$test_name" $TRACE_ENABLE > "$output_file" 2>&1
+        timeout $TEST_TIMEOUT "./$test_name" $TRACE_ENABLE > "$output_file" 2>&1
         local exit_code=$?
+    fi
+
+    # Check if test timed out
+    if [ $exit_code -eq 124 ]; then
+        echo "TEST TIMEOUT after ${TEST_TIMEOUT}s" >> "$output_file"
     fi
 
     local end_time=$(date +%s)
@@ -195,7 +203,10 @@ run_test() {
 
     # Determine test result
     local result="UNKNOWN"
-    if grep -q "TEST_PASSED" "$output_file" || [ $exit_code -eq 0 ]; then
+    if [ $exit_code -eq 124 ]; then
+        result="TIMEOUT"
+        FAILED_TESTS=$((FAILED_TESTS + 1))
+    elif grep -q "TEST_PASSED" "$output_file" || [ $exit_code -eq 0 ]; then
         result="PASS"
         PASSED_TESTS=$((PASSED_TESTS + 1))
     elif grep -q "TEST_FAILED" "$output_file" || [ $exit_code -ne 0 ]; then
@@ -208,6 +219,13 @@ run_test() {
         text)
             if [ "$result" = "PASS" ]; then
                 log_pass "$test_path (${duration}s)"
+            elif [ "$result" = "TIMEOUT" ]; then
+                print_color "$YELLOW" "[TIMEOUT] $test_path (${TEST_TIMEOUT}s)"
+                if [ $VERBOSE -eq 0 ]; then
+                    echo "--- Last 20 lines of output ---"
+                    tail -20 "$output_file"
+                    echo "--- End output ---"
+                fi
             else
                 log_fail "$test_path (${duration}s)"
                 if [ $VERBOSE -eq 0 ]; then
@@ -290,6 +308,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         -f|--format)
             OUTPUT_FORMAT="$2"
+            shift 2
+            ;;
+        --timeout)
+            TEST_TIMEOUT="$2"
             shift 2
             ;;
         -h|--help)
