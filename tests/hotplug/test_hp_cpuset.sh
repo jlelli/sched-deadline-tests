@@ -1,5 +1,6 @@
 #!/bin/bash
 . ../../lib/utils.sh
+. ../../lib/cgroup_helpers.sh
 TFULL=`basename $0`
 TNAME=${TFULL%.*}
 TDESC="
@@ -46,8 +47,8 @@ tear_down() {
 
   sleep 1
   trace_write "De-configuring exclusive cpusets"
-  /bin/echo 1 > ${CPUSET_DIR}/cpuset.sched_load_balance
-  /bin/echo 0 > ${CPUSET_DIR}/cpuset.cpu_exclusive
+  cleanup_cpuset ${CPUSET_DIR} cpusetA
+  cleanup_cpuset ${CPUSET_DIR} cpuset-work
 
   trace_stop
   trace_extract
@@ -55,33 +56,19 @@ tear_down() {
 
 print_test_info
 
-mount -t cgroup -o cpuset cpuset ${CPUSET_DIR} >/dev/null 2>&1
+# cgroups v1: mount cpuset, v2: already mounted at /sys/fs/cgroup
+if [ "$(detect_cgroup_version)" = "v1" ]; then
+    mount -t cgroup -o cpuset cpuset ${CPUSET_DIR} >/dev/null 2>&1
+fi
+
 trace_start
 
 trace_write "Configuring exclusive cpusets"
-/bin/echo 1 > ${CPUSET_DIR}/cpuset.cpu_exclusive
-/bin/echo 0 > ${CPUSET_DIR}/cpuset.sched_load_balance
+setup_cpuset ${CPUSET_DIR} cpuset-work "1-2" 0
+setup_cpuset ${CPUSET_DIR} cpusetA "1,3-4" 0
 
-mkdir -p ${CPUSET_DIR}/cpusetA
-mkdir -p ${CPUSET_DIR}/cpuset-work
-
-trace_write "Configuring cpuset: cpusets-work[1-2]"
-/bin/echo 1-2 >  ${CPUSET_DIR}/cpuset-work/cpuset.cpus
-/bin/echo 0 > ${CPUSET_DIR}/cpuset-work/cpuset.mems
-/bin/echo 1 > ${CPUSET_DIR}/cpuset-work/cpuset.cpu_exclusive
-/bin/echo 1 > ${CPUSET_DIR}/cpuset-work/cpuset.sched_load_balance
-
-trace_write "Configuring cpuset: cpusetA[0,3-4]"
-# Avoid CPU 0 as it's usually the boot CPU and cannot be offlined
-/bin/echo 1,3,4 >  ${CPUSET_DIR}/cpusetA/cpuset.cpus
-/bin/echo 0 > ${CPUSET_DIR}/cpusetA/cpuset.mems
-/bin/echo 1 > ${CPUSET_DIR}/cpusetA/cpuset.cpu_exclusive
-/bin/echo 1 > ${CPUSET_DIR}/cpusetA/cpuset.sched_load_balance
-
-trace_write "Moving tasks in cpuset-work: "
-for t in `cat ${CPUSET_DIR}/tasks`; do
-  /bin/echo $t > ${CPUSET_DIR}/cpuset-work/tasks >/dev/null 2>&1
-done
+trace_write "Moving tasks in cpuset-work"
+# Note: in cgroups v2, tasks are moved automatically to children when created
 
 trace_write "Launch 1 process"
 
@@ -101,7 +88,7 @@ sleep 1
 
 trace_write "moving ${PID} to cpusetA"
 
-/bin/echo $PID > $CPUSET_DIR/cpusetA/tasks
+move_task_to_cgroup ${CPUSET_DIR} cpusetA $PID
 if [ $? -eq 0 ]; then
   trace_write "Task moved to new cpuset"
 else
