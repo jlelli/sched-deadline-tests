@@ -1,5 +1,6 @@
 #!/bin/bash
 . ../../lib/utils.sh
+. ../../lib/cgroup_helpers.sh
 TFULL=`basename $0`
 TNAME=${TFULL%.*}
 TDESC="
@@ -23,56 +24,21 @@ CPUSET_DIR=/sys/fs/cgroup
 
 tear_down() {
   trace_write "kill $PID1 $PID2 $PID3 $PID4"
-  kill -TERM $PID1 $PID2 $PID3 $PID4
+  kill -TERM $PID1 $PID2 $PID3 $PID4 2>/dev/null
   sleep 1
-  rmdir ${CPUSET_DIR}/cpusetA
-  if [ $? -ne 0 ]; then
-    trace_write "ERROR: failed to remove cpusetA"
-    exit 1
-  fi
 
-  rmdir ${CPUSET_DIR}/cpusetB
-  if [ $? -ne 0 ]; then
-    trace_write "ERROR: failed to remove cpusetB"
-    exit 1
-  fi
-
-  trace_write "Moving all tasks back in root cpuset"
-  for t in `cat ${CPUSET_DIR}/cpuset-work/tasks`; do
-    /bin/echo $t > ${CPUSET_DIR}/tasks >/dev/null 2>&1
-  done
-  sleep 1
-  rmdir ${CPUSET_DIR}/cpuset-work
-  if [ $? -ne 0 ]; then
-    trace_write "ERROR: failed to remove cpuset-work"
-    exit 1
-  fi
-
-  sleep 1
   trace_write "De-configuring exclusive cpusets"
-  /bin/echo 1 > ${CPUSET_DIR}/cpuset.sched_load_balance
-  /bin/echo 0 > ${CPUSET_DIR}/cpuset.cpu_exclusive
+  cleanup_cpuset ${CPUSET_DIR} cpusetA
+  cleanup_cpuset ${CPUSET_DIR} cpusetB
+  cleanup_cpuset ${CPUSET_DIR} cpuset-work
 
   trace_stop
   trace_extract
 }
 
 tear_down_nokill() {
-  trace_write "Moving all tasks back in root cpuset"
-  for t in `cat ${CPUSET_DIR}/cpuset-work/tasks`; do
-    /bin/echo $t > ${CPUSET_DIR}/tasks >/dev/null 2>&1
-  done
-  sleep 1
-  rmdir ${CPUSET_DIR}/cpuset-work
-  if [ $? -ne 0 ]; then
-    trace_write "ERROR: failed to remove cpuset-work"
-    exit 1
-  fi
-
-  sleep 1
   trace_write "De-configuring exclusive cpusets"
-  /bin/echo 1 > ${CPUSET_DIR}/cpuset.sched_load_balance
-  /bin/echo 0 > ${CPUSET_DIR}/cpuset.cpu_exclusive
+  cleanup_cpuset ${CPUSET_DIR} cpuset-work
 
   trace_stop
   trace_extract
@@ -80,21 +46,10 @@ tear_down_nokill() {
 
 print_test_info
 
-mount -t cgroup -o cpuset cpuset ${CPUSET_DIR} >/dev/null 2>&1
-if [ -d "${CPUSET_DIR}/cpuset-work" ]; then
-  rmdir ${CPUSET_DIR}/cpuset-work
+# cgroups v1: mount cpuset, v2: already mounted at /sys/fs/cgroup
+if [ "$(detect_cgroup_version)" = "v1" ]; then
+    mount -t cgroup -o cpuset cpuset ${CPUSET_DIR} >/dev/null 2>&1
 fi
-mkdir ${CPUSET_DIR}/cpuset-work
-
-if [ -d "${CPUSET_DIR}/cpusetA" ]; then
-  rmdir ${CPUSET_DIR}/cpusetA
-fi
-mkdir ${CPUSET_DIR}/cpusetA
-
-if [ -d "${CPUSET_DIR}/cpusetB" ]; then
-  rmdir ${CPUSET_DIR}/cpusetB
-fi
-mkdir ${CPUSET_DIR}/cpusetB
 
 enable_ac
 dump_on_oops
@@ -102,31 +57,14 @@ trace_start
 trace_write "TEST $TNAME START"
 
 trace_write "Configuring exclusive cpusets"
-/bin/echo 1 > ${CPUSET_DIR}/cpuset.cpu_exclusive
-/bin/echo 0 > ${CPUSET_DIR}/cpuset.sched_load_balance
-
-# create cpuset-work
 trace_write "Configuring cpuset: cpuset-work[3]"
-/bin/echo 3 >  ${CPUSET_DIR}/cpuset-work/cpuset.cpus
-/bin/echo 0 > ${CPUSET_DIR}/cpuset-work/cpuset.mems
-/bin/echo 1 > ${CPUSET_DIR}/cpuset-work/cpuset.cpu_exclusive
+setup_cpuset ${CPUSET_DIR} cpuset-work "3" 0
 
-# create cpusetA
 trace_write "Configuring cpuset: cpusetA[0]"
-/bin/echo 0 >  ${CPUSET_DIR}/cpusetA/cpuset.cpus
-/bin/echo 0 > ${CPUSET_DIR}/cpusetA/cpuset.mems
-/bin/echo 1 > ${CPUSET_DIR}/cpusetA/cpuset.cpu_exclusive
+setup_cpuset ${CPUSET_DIR} cpusetA "0" 0
 
-# create cpusetB
 trace_write "Configuring cpuset: cpusetB[1-2]"
-/bin/echo 1-2 >  ${CPUSET_DIR}/cpusetB/cpuset.cpus
-/bin/echo 0 > ${CPUSET_DIR}/cpusetB/cpuset.mems
-/bin/echo 1 > ${CPUSET_DIR}/cpusetB/cpuset.cpu_exclusive
-
-trace_write "Moving all tasks in cpuset-work"
-for t in `cat ${CPUSET_DIR}/tasks`; do
-	/bin/echo $t > ${CPUSET_DIR}/cpuset-work/tasks >/dev/null 2>&1
-done
+setup_cpuset ${CPUSET_DIR} cpusetB "1-2" 0
 
 trace_write "Launch 4 processes"
 
@@ -144,7 +82,7 @@ trace_write "pids: $PID1 $PID2 $PID3 $PID4"
 trace_write "Attaching a (10,20) reservation to $PID1"
 # budget 10ms, period 20ms
 #
-schedtool -E -t 10000000:20000000 $PID1
+chrt -d --sched-runtime 10000000 --sched-deadline 20000000 --sched-period 20000000 -p 0 $PID1
 if [ $? -ne 0 ]; then
   trace_write "FAIL: couldn't attach $PID1 to (10,20)"
   tear_down
@@ -155,7 +93,7 @@ trace_write "Sleep for 1s"
 sleep 2
 
 trace_write "moving ${PID1} to cpusetA"
-/bin/echo $PID1 > $CPUSET_DIR/cpusetA/tasks
+move_task_to_cgroup ${CPUSET_DIR} cpusetA $PID1
 if [ $? -eq 0 ]; then
   trace_write "OK: task moved to new cpuset"
 else
@@ -170,7 +108,7 @@ sleep 1
 trace_write "Attaching a (12,20) reservation to $PID2"
 # budget 12ms, period 20ms
 #
-schedtool -E -t 12000000:20000000 $PID2
+chrt -d --sched-runtime 12000000 --sched-deadline 20000000 --sched-period 20000000 -p 0 $PID2
 if [ $? -ne 0 ]; then
   trace_write "FAIL: couldn't attach $PID2 to (12,20)"
   tear_down
@@ -181,7 +119,7 @@ trace_write "Sleep for 1s"
 sleep 1
 
 trace_write "moving ${PID2} to cpusetB"
-/bin/echo $PID2 > $CPUSET_DIR/cpusetB/tasks
+move_task_to_cgroup ${CPUSET_DIR} cpusetB $PID2
 if [ $? -eq 0 ]; then
   trace_write "OK: task moved to new cpuset"
 else
@@ -196,7 +134,7 @@ sleep 1
 trace_write "Attaching a (6,20) reservation to $PID3"
 # budget 6ms, period 20ms
 #
-schedtool -E -t 6000000:20000000 $PID3
+chrt -d --sched-runtime 6000000 --sched-deadline 20000000 --sched-period 20000000 -p 0 $PID3
 if [ $? -ne 0 ]; then
   trace_write "FAIL: couldn't attach $PID3 to (6,20)"
   tear_down
@@ -207,7 +145,7 @@ trace_write "Sleep for 1s"
 sleep 1
 
 trace_write "moving ${PID3} to cpusetB"
-/bin/echo $PID3 > $CPUSET_DIR/cpusetB/tasks
+move_task_to_cgroup ${CPUSET_DIR} cpusetB $PID3
 if [ $? -eq 0 ]; then
   trace_write "OK: task moved to new cpuset"
 else
@@ -221,7 +159,7 @@ sleep 1
 trace_write "Attaching a (10,20) reservation to $PID4"
 # budget 10ms, period 20ms
 #
-schedtool -E -t 10000000:20000000 $PID4
+chrt -d --sched-runtime 10000000 --sched-deadline 20000000 --sched-period 20000000 -p 0 $PID4
 if [ $? -ne 0 ]; then
   trace_write "FAIL: couldn't attach $PID4 to (10,20)"
   tear_down
@@ -232,7 +170,7 @@ trace_write "Sleep for 1s"
 sleep 1
 
 trace_write "moving ${PID4} to cpusetB"
-/bin/echo $PID4 > $CPUSET_DIR/cpusetB/tasks
+move_task_to_cgroup ${CPUSET_DIR} cpusetB $PID4
 if [ $? -eq 0 ]; then
   trace_write "OK: task moved to new cpuset"
 else
@@ -245,7 +183,7 @@ trace_write "Sleep for 1s"
 sleep 1
 
 trace_write "trying to move ${PID2} to cpusetA"
-/bin/echo $PID2 > $CPUSET_DIR/cpusetA/tasks
+move_task_to_cgroup ${CPUSET_DIR} cpusetA $PID2
 if [ $? -eq 0 ]; then
   trace_write "FAIL: task moved to new cpuset"
   tear_down
@@ -275,7 +213,7 @@ sleep 1
 trace_write "Modifing to (1,20) $PID4 reservation"
 # budget 1ms, period 20ms
 #
-schedtool -E -t 1000000:20000000 $PID4
+chrt -d --sched-runtime 1000000 --sched-deadline 20000000 --sched-period 20000000 -p 0 $PID4
 if [ $? -ne 0 ]; then
   trace_write "FAIL: couldn't modify $PID4 to (1,20)"
   tear_down
@@ -306,7 +244,7 @@ else
   tear_down
   exit 1
 fi
-/bin/echo $PID2 > $CPUSET_DIR/cpusetA/tasks
+move_task_to_cgroup ${CPUSET_DIR} cpusetA $PID2
 if [ $? -eq 0 ]; then
   trace_write "OK: task moved to new cpuset"
 else
