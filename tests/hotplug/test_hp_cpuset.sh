@@ -65,7 +65,7 @@ trace_start
 
 trace_write "Configuring exclusive cpusets"
 setup_cpuset ${CPUSET_DIR} cpuset-work "1-2" 0
-setup_cpuset ${CPUSET_DIR} cpusetA "1,3-4" 0
+setup_cpuset ${CPUSET_DIR} cpusetA "3-5" 0
 
 trace_write "Moving tasks in cpuset-work"
 # Note: in cgroups v2, tasks are moved automatically to children when created

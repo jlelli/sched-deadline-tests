@@ -41,7 +41,7 @@ OPTIONS:
     -v, --verbose        Enable verbose output
     -T, --trace          Enable kernel tracing in tests
     -m, --memory SIZE    VM memory size (default: 2G)
-    -s, --smp CPUS       Number of CPUs (default: 4)
+    -s, --smp CPUS       Number of CPUs (default: 8)
     --no-kvm             Disable KVM acceleration
     --virtme-opts OPTS   Additional virtme-ng options
     -h, --help           Show this help
@@ -81,7 +81,7 @@ SPECIFIC_TEST=""
 VERBOSE=""
 TRACE=""
 MEMORY="2G"
-CPUS="4"
+CPUS="8"
 KVM="enabled"
 VIRTME_OPTS=""
 KERNEL_PATH=""
