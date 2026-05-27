@@ -117,13 +117,6 @@ check_requirements() {
         exit 1
     fi
 
-    # Check for kernel support
-    if ! grep -q "SCHED_DEADLINE" /proc/sys/kernel/sched_domain/*/name 2>/dev/null; then
-        if [ ! -f /sys/kernel/debug/sched_features ]; then
-            log_skip "Warning: Cannot verify SCHED_DEADLINE support (debugfs not mounted)"
-        fi
-    fi
-
     # Check if tests directory exists
     if [ ! -d "tests" ]; then
         print_color "$RED" "ERROR: tests/ directory not found"
