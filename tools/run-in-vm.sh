@@ -180,10 +180,8 @@ echo "KVM:          ${KVM:+enabled}"
 echo
 
 # Build test command to run inside VM
-TEST_CMD="cd /mnt/tests && make clean && make && "
-
-# Build run-tests.sh command
-TEST_CMD+="./run-tests.sh"
+# Note: virtme-ng --rwdir mounts at the same path as host, and --cwd sets working dir
+TEST_CMD="make clean && make && ./run-tests.sh"
 [ -n "$CATEGORY" ] && TEST_CMD+=" --category $CATEGORY"
 [ -n "$SPECIFIC_TEST" ] && TEST_CMD+=" --test $SPECIFIC_TEST"
 [ -n "$VERBOSE" ] && TEST_CMD+=" --verbose"
