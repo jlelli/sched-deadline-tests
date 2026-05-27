@@ -39,7 +39,8 @@ CPUS="1,2,3,4"
 for i in $(seq 1 ${RUNS}); do
   trace_write "run ${i}"
 
-  schedtool -a ${CPUS} -E -t 50000:100000 -e ./cpuhog &
+  # Start cpuhog with SCHED_DEADLINE (runtime=50ms, deadline=period=100ms)
+  chrt -d --sched-runtime 50000000 --sched-deadline 100000000 --sched-period 100000000 0 ./cpuhog &
   PID=$!
   CPU=$(ps -o pid,psr | grep ${PID} | awk ' {print $2} ')
   trace_write "task ${PID} runs on CPU ${CPU}"

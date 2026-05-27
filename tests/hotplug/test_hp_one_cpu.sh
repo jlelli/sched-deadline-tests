@@ -90,7 +90,7 @@ trace_write "Attaching a (.05,.10) reservation to $PID"
 
 # budget 50us, period 100us
 #
-schedtool -E -t 50000:100000 $PID
+chrt -d --sched-runtime 50000000 --sched-deadline 100000000 --sched-period 100000000 -p 0 $PID
 
 trace_write "Sleep for 1s"
 sleep 1

@@ -83,7 +83,7 @@ void *run_deadline(void *data)
 
 	thread_tid = gettid();
 
-	printf("deadline thread started [%ld]\n\n", thread_tid);
+	printf("deadline thread started [%d]\n\n", thread_tid);
 
 	attr.size = sizeof(attr);
 	attr.sched_flags = 0;
@@ -108,7 +108,7 @@ void *run_deadline(void *data)
 		perror("clock_gettime");
 		exit(EXIT_FAILURE);
 	}
-	printf("deadline thread iteration=%d now=%llu [%ld]\n", iteration++, timespec_to_nsec(&now), thread_tid);
+	printf("deadline thread iteration=%d now=%llu [%d]\n", iteration++, timespec_to_nsec(&now), thread_tid);
 
 	next = now;
 	
@@ -122,7 +122,7 @@ void *run_deadline(void *data)
 		}
 
 		deadline_diff = attr.sched_deadline - timespec_to_nsec(&next);
-		printf("kruntime=%llu kdeadline=%llu udeadline=%llu diff=%lld [%ld]\n\n", attr.sched_runtime,
+		printf("kruntime=%llu kdeadline=%llu udeadline=%llu diff=%lld [%d]\n\n", attr.sched_runtime,
 				attr.sched_deadline, timespec_to_nsec(&next), deadline_diff, thread_tid);
 
 		if (clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next, NULL) == -1) {
@@ -136,7 +136,7 @@ void *run_deadline(void *data)
 		}
 
 		wlatency = timespec_sub(&now, &next);
-		printf("deadline thread iteration=%d now=%llu wlat=%llu [%ld]\n", iteration++,
+		printf("deadline thread iteration=%d now=%llu wlat=%llu [%d]\n", iteration++,
 				timespec_to_nsec(&now), timespec_to_nsec(&wlatency), thread_tid);
 	}
 
@@ -145,7 +145,7 @@ void *run_deadline(void *data)
 		exit(EXIT_FAILURE);
 	}
 
-	printf("deadline thread dies at %llu [%ld]\n", timespec_to_nsec(&now), thread_tid);
+	printf("deadline thread dies at %llu [%d]\n", timespec_to_nsec(&now), thread_tid);
 
 	return NULL;
 }
@@ -153,9 +153,6 @@ void *run_deadline(void *data)
 int main (int argc, char *argv[])
 {
 	pthread_t thread;
-	struct sched_attr attr;
-	int ret;
-	unsigned int flags = 0;
 	struct timespec now;
 
 	printf("Calling sched_getparam on a SCHED_DEADLINE task to see what happens!\n\n");
@@ -165,7 +162,7 @@ int main (int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 
-	printf("main thread at %llu [%ld]\n", timespec_to_nsec(&now), gettid());
+	printf("main thread at %llu [%d]\n", timespec_to_nsec(&now), gettid());
 
 	pthread_create(&thread, NULL, run_deadline, NULL);
 
@@ -182,7 +179,7 @@ int main (int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 
-	printf("main dies at %llu [%ld]\n", timespec_to_nsec(&now), gettid());
+	printf("main dies at %llu [%d]\n", timespec_to_nsec(&now), gettid());
 
 	return 0;
 }
