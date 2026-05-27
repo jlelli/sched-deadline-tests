@@ -28,7 +28,7 @@
 #include <signal.h>
 #include <sys/syscall.h>
 
-/* Compatibility for older systems (RHEL8) that don't have these in headers */
+#include "../../lib/sched_deadline.h"
 
 /* gettid wrapper for older systems that don't have it in unistd.h */
 #ifdef __GLIBC__
@@ -45,71 +45,6 @@ static inline pid_t gettid(void)
 	return syscall(SYS_gettid);
 }
 #endif
-
-/* SCHED_DEADLINE policy */
-#ifndef SCHED_DEADLINE
-#define SCHED_DEADLINE       6
-#endif
-
-/* Syscall numbers for sched_setattr/sched_getattr if not defined */
-#ifndef __NR_sched_setattr
-#ifdef __x86_64__
-#define __NR_sched_setattr           314
-#define __NR_sched_getattr           315
-#endif
-
-#ifdef __i386__
-#define __NR_sched_setattr           351
-#define __NR_sched_getattr           352
-#endif
-
-#ifdef __arm__
-#define __NR_sched_setattr           380
-#define __NR_sched_getattr           381
-#endif
-
-#ifdef __aarch64__
-#define __NR_sched_setattr           274
-#define __NR_sched_getattr           275
-#endif
-#endif /* __NR_sched_setattr */
-
-/* struct sched_attr for SCHED_DEADLINE if not in system headers */
-#ifndef SCHED_ATTR_SIZE_VER0
-/* Indicates system headers don't have struct sched_attr */
-struct sched_attr {
-	uint32_t size;
-
-	uint32_t sched_policy;
-	uint64_t sched_flags;
-
-	/* SCHED_NORMAL, SCHED_BATCH */
-	int32_t sched_nice;
-
-	/* SCHED_FIFO, SCHED_RR */
-	uint32_t sched_priority;
-
-	/* SCHED_DEADLINE (nsec) */
-	uint64_t sched_runtime;
-	uint64_t sched_deadline;
-	uint64_t sched_period;
-};
-
-static int sched_setattr(pid_t pid,
-			const struct sched_attr *attr,
-			unsigned int flags)
-{
-	return syscall(__NR_sched_setattr, pid, attr, flags);
-}
-
-static int sched_getattr(pid_t pid,
-			struct sched_attr *attr,
-			unsigned int size,
-			unsigned int flags)
-{
-	return syscall(__NR_sched_getattr, pid, attr, size, flags);
-}
-#endif /* SCHED_ATTR_SIZE_VER0 */
 
 /* Global state */
 static pthread_mutex_t pi_mutex;
