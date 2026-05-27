@@ -82,7 +82,7 @@ VERBOSE=""
 TRACE=""
 MEMORY="2G"
 CPUS="4"
-KVM="--force-kvm"
+KVM="enabled"
 VIRTME_OPTS=""
 KERNEL_PATH=""
 
@@ -114,7 +114,7 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         --no-kvm)
-            KVM=""
+            KVM="disabled"
             shift
             ;;
         --virtme-opts)
@@ -193,16 +193,25 @@ print_color "$BLUE" "Booting VM and running tests..."
 print_color "$YELLOW" "Command: $TEST_CMD"
 echo
 
+# Change to kernel directory (required by vng)
+cd "$KERNEL_PATH"
+
+# Build KVM argument
+KVM_ARG=""
+if [ "$KVM" = "disabled" ]; then
+    KVM_ARG="--disable-kvm"
+fi
+
 # Run virtme-ng with test suite mounted
-vng --force-9p \
-    --root "$TEST_DIR" \
-    --mount "$TEST_DIR:/mnt/tests" \
+vng --run \
+    --force-9p \
+    --rwdir "$TEST_DIR" \
+    --cwd "$TEST_DIR" \
     --memory "$MEMORY" \
     --cpus "$CPUS" \
-    $KVM \
+    $KVM_ARG \
     $VIRTME_OPTS \
-    --exec "$TEST_CMD" \
-    -- "$KERNEL_PATH"
+    --exec "$TEST_CMD"
 
 EXIT_CODE=$?
 
