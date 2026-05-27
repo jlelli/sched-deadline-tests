@@ -161,30 +161,25 @@ Detailed description of all tests in the SCHED_DEADLINE test suite.
 
 ---
 
-## Group Scheduling Tests (`tests/group-sched/`)
+## Group Scheduling Tests (`tests/group-sched/`) - DISABLED
+
+**Status**: These tests are currently **disabled** and not run by default.
+
+**Reason**: SCHED_DEADLINE does not currently have cgroup (control group) support in the Linux kernel. These tests actually validate SCHED_FIFO/RR cgroup bandwidth control, not SCHED_DEADLINE.
 
 ### test_group.sh / test_group_periodic.sh / test_group_periods.sh
-**Purpose**: Test SCHED_DEADLINE with control groups (cgroups).
+**Purpose**: Test cgroup CPU bandwidth control for real-time tasks (SCHED_FIFO/RR).
 
-**What it does**:
-- Creates cgroup hierarchies
-- Assigns deadline tasks to cgroups
-- Tests bandwidth enforcement across groups
+**What they do**:
+- Create cgroup hierarchies with CPU bandwidth limits
+- Run SCHED_FIFO tasks (not SCHED_DEADLINE)
+- Test bandwidth enforcement across groups
 
-**Expected behavior**: Group bandwidth limits are enforced correctly.
+**Dependencies**: Requires `schedtool` and `rt-app` (external tools)
 
-**Note**: Requires cgroup support in kernel.
+**Future**: When SCHED_DEADLINE gains cgroup support, these tests should be updated to use SCHED_DEADLINE instead of SCHED_FIFO.
 
----
-
-### test_rt_migration.sh
-**Purpose**: Test migration of SCHED_DEADLINE tasks between cgroups.
-
-**What it does**:
-- Moves running deadline tasks between cgroups
-- Verifies admission control updates
-
-**Expected behavior**: Migration succeeds with correct bandwidth accounting.
+See `tests/group-sched/README.md` for more details.
 
 ---
 

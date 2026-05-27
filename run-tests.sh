@@ -33,7 +33,7 @@ CATEGORIES=(
     "priority-inheritance"
     "sched-domains"
     "hotplug"
-    "group-sched"
+    # "group-sched"  # Disabled: SCHED_DEADLINE doesn't have cgroup support yet
     "grub"
     "regression"
 )

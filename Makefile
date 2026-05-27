@@ -10,8 +10,8 @@ TEST_DIRS = tests/basic \
             tests/priority-inheritance \
             tests/sched-domains \
             tests/hotplug \
-            tests/group-sched \
             tests/regression
+            # tests/group-sched  # Disabled: SCHED_DEADLINE doesn't have cgroup support yet
 
 # Tools
 TOOL_DIRS = tools

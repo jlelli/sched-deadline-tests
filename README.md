@@ -136,11 +136,15 @@ CPU hotplug interaction with deadline tasks:
 - Migration during hotplug events
 - Cpuset interaction with hotplug
 
-### Group Scheduling (`tests/group-sched/`)
+### Group Scheduling (`tests/group-sched/`) - DISABLED
 
-Control group (cgroup) scheduling with SCHED_DEADLINE:
+**Status**: Currently disabled - SCHED_DEADLINE doesn't have cgroup support yet.
+
+These tests validate cgroup CPU bandwidth for SCHED_FIFO/RR (not SCHED_DEADLINE):
 - Group bandwidth enforcement
 - Hierarchical scheduling
+
+See `tests/group-sched/README.md` for details.
 
 ### GRUB (`tests/grub/`)
 
