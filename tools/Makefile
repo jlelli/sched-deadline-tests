@@ -14,7 +14,7 @@ TARGETS = dl_getparam
 all: $(TARGETS)
 
 dl_getparam: dl_getparam.c
-	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS)
+	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS) -lm
 
 clean:
 	rm -f $(TARGETS) *.o
