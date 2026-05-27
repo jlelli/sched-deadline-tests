@@ -33,7 +33,6 @@ CATEGORIES=(
     "priority-inheritance"
     "sched-domains"
     "hotplug"
-    # "group-sched"  # Disabled: SCHED_DEADLINE doesn't have cgroup support yet
     "grub"
     "regression"
 )
@@ -60,7 +59,6 @@ CATEGORIES:
     priority-inheritance       Priority inheritance tests
     sched-domains             Scheduling domains tests
     hotplug                   CPU hotplug tests
-    group-sched               Control group scheduling
     grub                      GRUB reclaiming algorithm
     regression                Kernel bug regression tests
 
@@ -137,8 +135,9 @@ discover_tests() {
         fi
     fi
 
-    # Find all executable .sh test files
-    find "$tests_dir" -name "test*.sh" -type f -executable | sort
+    # Find all executable .sh test files, excluding group-sched
+    # (SCHED_DEADLINE doesn't have cgroup support yet)
+    find "$tests_dir" -name "test*.sh" -type f -executable | grep -v "group-sched" | sort
 }
 
 list_tests() {
