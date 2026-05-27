@@ -47,8 +47,6 @@ pthread_mutex_t m1;
 pthread_mutex_t m2;
 
 void *run_normal_1(void *data) {
-    int x = 0;
-
     printf("normal thread N1 started [%ld]\n", gettid());
 
     // N1 locks M1
@@ -73,8 +71,6 @@ void *run_normal_1(void *data) {
 }
 
 void *run_normal_2(void *data) {
-    int x = 0;
-
     printf("normal thread N2 started [%ld]\n", gettid());
 
     // N2 locks M2
@@ -84,7 +80,7 @@ void *run_normal_2(void *data) {
 
     // Wait until N1 locked M1
     while (step < 1) {
-        x++;
+        /* busy wait */
     }
 
     // Notify D1
@@ -114,7 +110,6 @@ void *run_normal_2(void *data) {
 
 void *run_deadline(void *data) {
     struct sched_attr attr;
-    int x = 0;
     int ret = 0;
     unsigned int flags = 0;
 
@@ -139,7 +134,7 @@ void *run_deadline(void *data) {
 
     // Wait until N2 locked M2
     while (step < 2) {
-        x++;
+        /* busy wait */
     }
 
     printf("D1 is locking M2\n");

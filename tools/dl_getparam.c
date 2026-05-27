@@ -162,7 +162,7 @@ int main (int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 
-	printf("main thread at %llu [%d]\n", timespec_to_nsec(&now), gettid());
+	printf("main thread at %llu [%ld]\n", timespec_to_nsec(&now), (long)gettid());
 
 	pthread_create(&thread, NULL, run_deadline, NULL);
 
@@ -179,7 +179,7 @@ int main (int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 
-	printf("main dies at %llu [%d]\n", timespec_to_nsec(&now), gettid());
+	printf("main dies at %llu [%ld]\n", timespec_to_nsec(&now), (long)gettid());
 
 	return 0;
 }
