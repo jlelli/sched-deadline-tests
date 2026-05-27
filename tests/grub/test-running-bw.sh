@@ -1,14 +1,15 @@
 #!/bin/bash
-. ../utils.sh
+. ../../lib/utils.sh
 
 TNAME=$(echo $0 | tr '/' ' ' | tr '.' ' ' | awk '{ print $1 }')
-TINFO="Test how a cpuhog task is handled by GRUB"
+TINFO="Test rq running bandwidth"
 BENCHMARK="rt-app"
 TRACE=$1
 EVENTS="sched_wakeup* sched_switch sched_migrate* sched_stat_running_bw* sched_stat_*_dl"
 
 cleanup() {
   trace_stop
+  #enable_ac
   turn_on_cpu 1
   turn_on_cpu 2
   turn_on_cpu 3

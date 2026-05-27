@@ -1,5 +1,5 @@
 #!/bin/bash
-. ../utils.sh
+. ../../lib/utils.sh
 TFULL=`basename $0`
 TNAME=${TFULL%.*}
 TDESC="
@@ -17,12 +17,8 @@ EVENTS="sched_wakeup* sched_switch sched_migrate*"
 CPUSET_DIR=/sys/fs/cgroup
 
 tear_down() {
-  trace_write "kill $PID1, $PID2 and $PID3"
-  kill -TERM $PID1 $PID2 $PID3
-  sleep 1
-
   trace_write "De-configuring groups"
-  rmdir ${CPUSET_DIR}/g1
+  rmdir ${CPUSET_DIR}/group1
   if [ $? -ne 0 ]; then
     trace_write "ERROR: failed to remove cpusetA"
     exit 1
@@ -37,37 +33,25 @@ print_test_info
 
 mount -t cgroup -o cpu cpu ${CPUSET_DIR}
 
-#dump_on_oops
 trace_start
 
 trace_write "Configuring groups"
 /bin/echo 500000 > ${CPUSET_DIR}/cpu.rt_runtime_us
-mkdir -p ${CPUSET_DIR}/g1
-/bin/echo 300000 > ${CPUSET_DIR}/g1/cpu.rt_runtime_us
+mkdir -p ${CPUSET_DIR}/group1
+/bin/echo 300000 > ${CPUSET_DIR}/group1/cpu.rt_runtime_us
 
-trace_write "Launch 2 cpuhog processes"
-schedtool -F -p 10 -e ./burn &
-PID1=$!
-schedtool -F -p 10 -e ./burn &
-PID2=$!
-trace_write "pids: $PID1 $PID2"
+trace_write "Sleep for 1s"
+sleep 1
 
-trace_write "Moving $PID1 and $PID2 into g1"
-/bin/echo ${PID1} > ${CPUSET_DIR}/g1/tasks
-/bin/echo ${PID2} > ${CPUSET_DIR}/g1/tasks
+trace_write "Launch rt-app process"
+rt-app example2.json &
+PID=$!
 
-trace_write "Sleep for 5s"
-sleep 5
+trace_write "Sleep for 1s"
+sleep 1
 
-trace_write "Launch 1 other cpuhog process"
-schedtool -F -p 10 -e ./burn &
-PID3=$!
-trace_write "pid: $PID3"
-
-trace_write "Moving $PID3 into g1"
-/bin/echo ${PID3} > ${CPUSET_DIR}/g1/tasks
-
-trace_write "Sleep for 5s"
+trace_write "Moving $PID into group1"
+/bin/echo $PID > ${CPUSET_DIR}/group1/cgroup.procs
 sleep 5
 
 tear_down

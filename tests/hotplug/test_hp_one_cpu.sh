@@ -1,5 +1,5 @@
 #!/bin/bash
-. ../utils.sh
+. ../../lib/utils.sh
 TFULL=`basename $0`
 TNAME=${TFULL%.*}
 TDESC="
@@ -7,15 +7,15 @@ TDESC="
 #
 #    test: $TNAME
 #
-#    Create an exclusive cpuset composed of 3 CPUs and put a DL task to run
-#    into it. Start turning off CPUs and verify that CPUs can be turned off
-#    all but one (the last the task happens to run in).
+#    Create an exclusive cpuset and put a task, attached to a DL reservation,
+#    to run into it. Repetedly try to turn off the CPU the task is running on.
+#    Check that this always fails.
 #
 ###############################################################################
 
 "
 TRACE=${1-0}
-RUNS=${2-5}
+RUNS=5
 EVENTS="sched_wakeup* sched_switch sched_migrate*"
 CPUSET_DIR=/sys/fs/cgroup
 
@@ -30,13 +30,11 @@ tear_down() {
   fi
 
   sleep 1
-  trace_write "Moving tasks back in root cpuset: "
-  trace_write "tasks tasks: "
-  cat ${CPUSET_DIR}/cpuset-work/tasks
+  trace_write "Moving tasks back in root cpuset"
   for t in `cat ${CPUSET_DIR}/cpuset-work/tasks`; do
     /bin/echo $t > ${CPUSET_DIR}/tasks >/dev/null 2>&1
   done
-  echo ""
+
   sleep 1
   rmdir ${CPUSET_DIR}/cpuset-work
   if [ $? -ne 0 ]; then
@@ -54,6 +52,7 @@ tear_down() {
 }
 
 print_test_info
+dump_on_oops
 
 mount -t cgroup -o cpuset cpuset ${CPUSET_DIR} >/dev/null 2>&1
 trace_start
@@ -65,19 +64,17 @@ trace_write "Configuring exclusive cpusets"
 mkdir -p ${CPUSET_DIR}/cpusetA
 mkdir -p ${CPUSET_DIR}/cpuset-work
 
-trace_write "Configuring cpuset: cpusets-work[1-2]"
-/bin/echo 1-2 >  ${CPUSET_DIR}/cpuset-work/cpuset.cpus
+trace_write "Configuring cpuset: cpusets-work[0-2]"
+/bin/echo 0-2 >  ${CPUSET_DIR}/cpuset-work/cpuset.cpus
 /bin/echo 0 > ${CPUSET_DIR}/cpuset-work/cpuset.mems
 /bin/echo 1 > ${CPUSET_DIR}/cpuset-work/cpuset.cpu_exclusive
-/bin/echo 1 > ${CPUSET_DIR}/cpuset-work/cpuset.sched_load_balance
 
-trace_write "Configuring cpuset: cpusetA[0,3-4]"
-/bin/echo 0,3,4 >  ${CPUSET_DIR}/cpusetA/cpuset.cpus
+trace_write "Configuring cpuset: cpusetA[3]"
+/bin/echo 3 >  ${CPUSET_DIR}/cpusetA/cpuset.cpus
 /bin/echo 0 > ${CPUSET_DIR}/cpusetA/cpuset.mems
 /bin/echo 1 > ${CPUSET_DIR}/cpusetA/cpuset.cpu_exclusive
-/bin/echo 1 > ${CPUSET_DIR}/cpusetA/cpuset.sched_load_balance
 
-trace_write "Moving tasks in cpuset-work: "
+trace_write "Moving tasks in cpuset-work"
 for t in `cat ${CPUSET_DIR}/tasks`; do
   /bin/echo $t > ${CPUSET_DIR}/cpuset-work/tasks >/dev/null 2>&1
 done
@@ -112,16 +109,15 @@ fi
 trace_write "Sleep for 2s"
 sleep 2
 
-ONLINE_CPUS=3
+ONLINE_CPUS=1
 for i in $(seq 1 ${RUNS}); do
   trace_write "run ${i}"
   trace_write "online cpus: ${ONLINE_CPUS}"
 
-  #CPU=$(ps -o pid,psr | grep ${PID} | awk ' {print $2} ')
-  CPU=$(cat /proc/${PID}/stat | awk ' {print $39} ')
+  CPU=$(ps -o pid,psr | grep ${PID} | awk ' {print $2} ')
   trace_write "task ${PID} runs on CPU ${CPU}"
   trace_write "turning off CPU ${CPU}"
-  /bin/echo 0 > /sys/devices/system/cpu/cpu${CPU}/online
+  echo 0 > /sys/devices/system/cpu/cpu${CPU}/online
   RES=$?
   if [ $ONLINE_CPUS -gt 1 ] && [ $RES -ne 0 ]; then
     trace_write "FAIL: couldn't turn CPU ${CPU} off"

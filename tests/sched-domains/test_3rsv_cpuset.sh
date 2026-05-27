@@ -1,5 +1,5 @@
 #!/bin/bash
-. ../utils.sh
+. ../../lib/utils.sh
 TFULL=`basename $0`
 TNAME=${TFULL%.*}
 TDESC="
