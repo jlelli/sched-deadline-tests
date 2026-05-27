@@ -44,7 +44,15 @@ for i in $(seq 1 ${RUNS}); do
   PID=$!
   CPU=$(ps -o pid,psr | grep ${PID} | awk ' {print $2} ')
   trace_write "task ${PID} runs on CPU ${CPU}"
-  
+
+  # TODO: Better approach would be to pin task to a specific non-boot CPU
+  # Skip CPU 0 as it's usually the boot CPU and cannot be offlined
+  if [ "$CPU" = "0" ]; then
+    trace_write "task on CPU 0 (boot CPU), skipping this iteration"
+    kill -9 ${PID}
+    continue
+  fi
+
   sleep 1
   trace_write "turning off CPU ${CPU}"
   echo 0 > /sys/devices/system/cpu/cpu${CPU}/online

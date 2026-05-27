@@ -72,7 +72,8 @@ trace_write "Configuring cpuset: cpusets-work[1-2]"
 /bin/echo 1 > ${CPUSET_DIR}/cpuset-work/cpuset.sched_load_balance
 
 trace_write "Configuring cpuset: cpusetA[0,3-4]"
-/bin/echo 0,3,4 >  ${CPUSET_DIR}/cpusetA/cpuset.cpus
+# Avoid CPU 0 as it's usually the boot CPU and cannot be offlined
+/bin/echo 1,3,4 >  ${CPUSET_DIR}/cpusetA/cpuset.cpus
 /bin/echo 0 > ${CPUSET_DIR}/cpusetA/cpuset.mems
 /bin/echo 1 > ${CPUSET_DIR}/cpusetA/cpuset.cpu_exclusive
 /bin/echo 1 > ${CPUSET_DIR}/cpusetA/cpuset.sched_load_balance
