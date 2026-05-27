@@ -64,10 +64,17 @@ make clean
 
 ### Quick Start
 
-Run all tests:
+Run all tests on the current system:
 ```bash
 sudo ./run-tests.sh
 ```
+
+Run tests in a VM (safer, recommended for development):
+```bash
+./tools/run-in-vm.sh /path/to/kernel
+```
+
+See **[VM Testing Guide](docs/VM-TESTING.md)** for automated kernel testing.
 
 Run tests from a specific category:
 ```bash
@@ -153,9 +160,10 @@ Tests that reproduce specific kernel bugs:
 
 Detailed documentation is available in the `docs/` directory:
 
-- `docs/TESTS.md` - Detailed description of each test
-- `docs/BUGS.md` - Kernel bugs tested by this suite
-- `docs/CONTRIBUTING.md` - Guidelines for adding new tests
+- **[docs/TESTS.md](docs/TESTS.md)** - Detailed description of each test
+- **[docs/BUGS.md](docs/BUGS.md)** - Kernel bugs tested by this suite
+- **[docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)** - Guidelines for adding new tests
+- **[docs/VM-TESTING.md](docs/VM-TESTING.md)** - Running tests in VMs for CI/CD
 
 ## Tools
 
