@@ -1,0 +1,75 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  build:
+    name: Build Test Suite
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        compiler: [gcc, clang]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          gcc \
+          clang \
+          make \
+          libc6-dev \
+          schedtool \
+          trace-cmd
+
+    - name: Build with ${{ matrix.compiler }}
+      run: make CC=${{ matrix.compiler }}
+
+    - name: Check build artifacts
+      run: |
+        test -f tests/basic/cpuhog
+        test -f tests/basic/periodic_yield
+        test -f tests/priority-inheritance/pthread_test
+        test -f tests/sched-domains/burn
+        test -f tests/hotplug/cpuhog
+        test -f tests/regression/pi-cfs-bug-repro
+        test -f tests/regression/test_dl_replenish_bug
+        test -f tools/dl_getparam
+
+    - name: Test help output
+      run: ./run-tests.sh --help
+
+    - name: List tests
+      run: ./run-tests.sh --list
+
+  shellcheck:
+    name: ShellCheck
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install ShellCheck
+      run: sudo apt-get update && sudo apt-get install -y shellcheck
+
+    - name: Run ShellCheck on test runner
+      run: shellcheck run-tests.sh || true
+
+    - name: Run ShellCheck on lib scripts
+      run: shellcheck lib/*.sh || true
+
+    - name: Run ShellCheck on test scripts
+      run: find tests -name "*.sh" -type f -exec shellcheck {} + || true
+
+  # Note: Actual test execution requires kernel SCHED_DEADLINE support
+  # and root privileges, so it cannot run in standard CI environments.
+  # For full testing, use a dedicated test machine with appropriate kernel.

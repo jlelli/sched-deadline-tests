@@ -1,17 +1,42 @@
+# Editor files
 *~
 .*.swp
+*.swp
+.vscode/
+.idea/
 
+# Build artifacts
+*.o
+*.a
+*.so
 *.dat
 *.out
 
-basic/cpuhog
-basic/periodic_yield
+# Test binaries - basic
+tests/basic/cpuhog
+tests/basic/periodic_yield
 
-grub/test-cpuhog.out
-grub/test-running-bw.out
+# Test binaries - priority-inheritance
+tests/priority-inheritance/pthread_test
 
-prio-inherit/pthread_test
+# Test binaries - sched-domains
+tests/sched-domains/burn
+tests/sched-domains/reset
+tests/sched-domains/sched_setattr
 
-sched-domains/burn
-sched-domains/reset
-sched-domains/sched_setattr
+# Test binaries - hotplug
+tests/hotplug/cpuhog
+
+# Test binaries - group-sched
+tests/group-sched/burn
+
+# Test binaries - regression
+tests/regression/pi-cfs-bug-repro
+tests/regression/test_dl_replenish_bug
+
+# Tool binaries
+tools/dl_getparam
+
+# Test output files
+*.log
+*.trace
