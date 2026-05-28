@@ -207,7 +207,7 @@ vng --run \
     --cwd "$TEST_DIR" \
     --memory "$MEMORY" \
     --cpus "$CPUS" \
-    --append "sched_verbose" \
+    --append "sched_verbose console=ttyS0" \
     $KVM_ARG \
     $VIRTME_OPTS \
     --exec "$TEST_CMD"
