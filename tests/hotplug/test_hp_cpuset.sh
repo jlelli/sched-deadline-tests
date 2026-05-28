@@ -101,6 +101,7 @@ trace_write "Sleep for 2s"
 sleep 2
 
 ONLINE_CPUS=3
+OFFLINE_CPUS=""
 for i in $(seq 1 ${RUNS}); do
   trace_write "run ${i}"
   trace_write "online cpus: ${ONLINE_CPUS}"
@@ -113,6 +114,10 @@ for i in $(seq 1 ${RUNS}); do
   RES=$?
   if [ $ONLINE_CPUS -gt 1 ] && [ $RES -ne 0 ]; then
     trace_write "FAIL: couldn't turn CPU ${CPU} off"
+    # Turn back on any CPUs we turned off
+    for c in $OFFLINE_CPUS; do
+      echo 1 > /sys/devices/system/cpu/cpu${c}/online
+    done
     tear_down
     exit 1
   fi
@@ -120,18 +125,29 @@ for i in $(seq 1 ${RUNS}); do
     trace_write "FAIL: CPU ${CPU} has been turned off!"
     trace_write "turning on CPU ${CPU}"
     echo 1 > /sys/devices/system/cpu/cpu${CPU}/online
+    # Turn back on any CPUs we turned off
+    for c in $OFFLINE_CPUS; do
+      echo 1 > /sys/devices/system/cpu/cpu${c}/online
+    done
     tear_down
     exit 1
   fi
 
   sleep 1
   if [ $ONLINE_CPUS -gt 1 ]; then
-    trace_write "turning on CPU ${CPU}"
-    echo 1 > /sys/devices/system/cpu/cpu${CPU}/online
+    # Don't turn it back on yet - keep it offline
+    OFFLINE_CPUS="$OFFLINE_CPUS $CPU"
     ONLINE_CPUS=$((ONLINE_CPUS-1))
   fi
 
   sleep 1
+done
+
+# Turn all CPUs back on
+trace_write "Turning CPUs back on"
+for c in $OFFLINE_CPUS; do
+  trace_write "turning on CPU ${c}"
+  echo 1 > /sys/devices/system/cpu/cpu${c}/online
 done
 
 trace_write "Sleep for 2s"
