@@ -23,7 +23,8 @@ dump_on_oops
 trace_start
 
 trace_write "start $TNAME"
-schedtool -E -t 10000000:100000000 -e ./cpuhog &
+# budget 10ms, deadline 100ms, period 100ms
+chrt -d --sched-runtime 10000000 --sched-deadline 100000000 --sched-period 100000000 0 ./cpuhog &
 
 trace_write "sleep for ${SLEEP}s"
 sleep $SLEEP
