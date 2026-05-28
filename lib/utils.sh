@@ -50,6 +50,8 @@ trace_write() {
   if [ ${tracing} -eq 1 ]; then
     echo $1 > /sys/kernel/debug/tracing/trace_marker
   fi
+  # Also write to dmesg for easy correlation with kernel messages
+  echo "[TEST] $1" > /dev/kmsg 2>/dev/null || true
 }
 
 dump_on_oops() {
