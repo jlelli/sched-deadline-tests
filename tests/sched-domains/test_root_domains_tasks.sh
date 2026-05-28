@@ -40,15 +40,15 @@ trace_write "pids: $PID1 $PID2 $PID3"
 # 1: budget 20ms, period 200ms (104857 bw)
 #
 trace_write "Attaching a (20,200) reservation to $PID1"
-schedtool -E -t 20000000:200000000 $PID1
+chrt -d --sched-runtime 20000000 --sched-deadline 200000000 --sched-period 200000000 -p 0 $PID1
 # 2: budget 10ms, period 200ms (52423 bw)
 #
 trace_write "Attaching a (10,200) reservation to $PID2"
-schedtool -E -t 10000000:200000000 $PID2
+chrt -d --sched-runtime 10000000 --sched-deadline 200000000 --sched-period 200000000 -p 0 $PID2
 # 3: budget 10ms, period 50ms (209715 bw)
 #
 trace_write "Attaching a (10,50) reservation to $PID3"
-schedtool -E -t 10000000:50000000 $PID3
+chrt -d --sched-runtime 10000000 --sched-deadline 50000000 --sched-period 50000000 -p 0 $PID3
 
 grep dl_ /proc/sched_debug
 trace_write "Sleep for 1s"

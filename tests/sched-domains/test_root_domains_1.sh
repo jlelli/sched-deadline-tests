@@ -37,12 +37,12 @@ for i in `seq 0 100`; do
   # budget 20ms, period 200ms (104857 bw)
   #
   trace_write "Attaching a (20,200) reservation to $PID"
-  schedtool -E -t 20000000:200000000 $PID
+  chrt -d --sched-runtime 20000000 --sched-deadline 200000000 --sched-period 200000000 -p 0 $PID
 
   # back to NORMAL
   #
   trace_write "Back to NORMAL $PID"
-  schedtool -N $PID
+  chrt -o -p 0 $PID
 done
 
 trace_write "Sleep for 1s"
@@ -52,7 +52,7 @@ grep -A4 dl_rq /proc/sched_debug
 # budget 20ms, period 200ms (104857 bw)
 #
 trace_write "Attaching a (20,200) reservation to $PID"
-schedtool -E -t 20000000:200000000 $PID
+chrt -d --sched-runtime 20000000 --sched-deadline 200000000 --sched-period 200000000 -p 0 $PID
 trace_write "Sleep for 1s"
 sleep 1
 grep -A4 dl_rq /proc/sched_debug
@@ -82,12 +82,12 @@ for i in `seq 0 100`; do
   # back to NORMAL
   #
   trace_write "Back to NORMAL $PID"
-  schedtool -N $PID
+  chrt -o -p 0 $PID
 
   # budget 20ms, period 200ms (104857 bw)
   #
   trace_write "Attaching a (20,200) reservation to $PID"
-  schedtool -E -t 20000000:200000000 $PID
+  chrt -d --sched-runtime 20000000 --sched-deadline 200000000 --sched-period 200000000 -p 0 $PID
 done
 
 trace_write "Moving task $PID in root cpuset"
