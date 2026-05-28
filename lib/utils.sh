@@ -17,6 +17,19 @@ print_test_info() {
   fi
 }
 
+test_start() {
+  trace_write "===== TEST START: $TNAME ====="
+}
+
+test_pass() {
+  trace_write "===== TEST PASS: $TNAME ====="
+}
+
+test_fail() {
+  local msg="$1"
+  trace_write "===== TEST FAIL: $TNAME - $msg ====="
+}
+
 trace_start() {
   if [[ -n "$TRACE" && ${TRACE} -eq 1 ]]; then
     tracing=1
