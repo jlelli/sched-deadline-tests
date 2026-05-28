@@ -80,12 +80,12 @@ PID4=$!
 
 trace_write "pids: $PID1 $PID2 $PID3 $PID4"
 
-trace_write "Attaching a (10,20) reservation to $PID1"
-# budget 10ms, period 20ms
-#
-chrt -d --sched-runtime 10000000 --sched-deadline 20000000 --sched-period 20000000 -p 0 $PID1
+trace_write "Attaching a (9,20) reservation to $PID1"
+# budget 9ms, period 20ms (45% CPU)
+# With fair_server: 45% + 5% = 50% on cpusetA (1 CPU)
+chrt -d --sched-runtime 9000000 --sched-deadline 20000000 --sched-period 20000000 -p 0 $PID1
 if [ $? -ne 0 ]; then
-  test_fail "couldn't attach $PID1 to (10,20)"
+  test_fail "couldn't attach $PID1 to (9,20)"
   tear_down
   exit 1
 fi
@@ -106,10 +106,10 @@ fi
 trace_write "Sleep for 1s"
 sleep 1
 
-trace_write "Attaching a (12,20) reservation to $PID2"
-# budget 12ms, period 20ms
-#
-chrt -d --sched-runtime 12000000 --sched-deadline 20000000 --sched-period 20000000 -p 0 $PID2
+trace_write "Attaching a (10,20) reservation to $PID2"
+# budget 10ms, period 20ms (50% CPU)
+# Will go to cpusetB (2 CPUs) initially
+chrt -d --sched-runtime 10000000 --sched-deadline 20000000 --sched-period 20000000 -p 0 $PID2
 if [ $? -ne 0 ]; then
   test_fail "couldn't attach $PID2 to (12,20)"
   tear_down
@@ -132,10 +132,10 @@ fi
 trace_write "Sleep for 1s"
 sleep 1
 
-trace_write "Attaching a (6,20) reservation to $PID3"
-# budget 6ms, period 20ms
-#
-chrt -d --sched-runtime 6000000 --sched-deadline 20000000 --sched-period 20000000 -p 0 $PID3
+trace_write "Attaching a (5,20) reservation to $PID3"
+# budget 5ms, period 20ms (25% CPU)
+# Will go to cpusetB (2 CPUs)
+chrt -d --sched-runtime 5000000 --sched-deadline 20000000 --sched-period 20000000 -p 0 $PID3
 if [ $? -ne 0 ]; then
   test_fail "couldn't attach $PID3 to (6,20)"
   tear_down
@@ -157,10 +157,11 @@ fi
 trace_write "Sleep for 1s"
 sleep 1
 
-trace_write "Attaching a (10,20) reservation to $PID4"
-# budget 10ms, period 20ms
-#
-chrt -d --sched-runtime 10000000 --sched-deadline 20000000 --sched-period 20000000 -p 0 $PID4
+trace_write "Attaching a (9,20) reservation to $PID4"
+# budget 9ms, period 20ms (45% CPU)
+# Will go to cpusetB (2 CPUs)
+# cpusetB total: 55% + 25% + 45% = 125% on 2 CPUs, with fair_server: 125% + 10% = 135% < 190%
+chrt -d --sched-runtime 9000000 --sched-deadline 20000000 --sched-period 20000000 -p 0 $PID4
 if [ $? -ne 0 ]; then
   test_fail "couldn't attach $PID4 to (10,20)"
   tear_down
