@@ -200,7 +200,13 @@ if [ "$KVM" = "disabled" ]; then
     KVM_ARG="--disable-kvm"
 fi
 
+# Create log file for console output
+CONSOLE_LOG="/tmp/sched-deadline-console-$(date +%Y%m%d-%H%M%S).log"
+print_color "$BLUE" "Console/dmesg output will be saved to: $CONSOLE_LOG"
+echo
+
 # Run virtme-ng with test suite mounted
+# Use QEMU's -serial option to log console to file
 vng --run \
     --force-9p \
     --rwdir "$TEST_DIR" \
@@ -208,11 +214,15 @@ vng --run \
     --memory "$MEMORY" \
     --cpus "$CPUS" \
     --append "sched_verbose console=ttyS0" \
+    --qemu-opts "-serial file:$CONSOLE_LOG" \
     $KVM_ARG \
     $VIRTME_OPTS \
     --exec "$TEST_CMD"
 
 EXIT_CODE=$?
+
+echo
+print_color "$BLUE" "Console log saved to: $CONSOLE_LOG"
 
 echo
 if [ $EXIT_CODE -eq 0 ]; then
