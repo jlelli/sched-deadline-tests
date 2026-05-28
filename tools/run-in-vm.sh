@@ -181,14 +181,18 @@ echo
 
 # Build test command to run inside VM
 # Note: virtme-ng --rwdir mounts at the same path as host, and --cwd sets working dir
-TEST_CMD="make clean && make && ./run-tests.sh"
+# Write dmesg to the shared test directory so it's accessible from host
+DMESG_LOG="${TEST_DIR}/dmesg-$(date +%Y%m%d-%H%M%S).log"
+TEST_CMD="dmesg -C && make clean && make && ./run-tests.sh"
 [ -n "$CATEGORY" ] && TEST_CMD+=" --category $CATEGORY"
 [ -n "$SPECIFIC_TEST" ] && TEST_CMD+=" --test $SPECIFIC_TEST"
 [ -n "$VERBOSE" ] && TEST_CMD+=" --verbose"
 [ -n "$TRACE" ] && TEST_CMD+=" --trace"
+TEST_CMD+=" ; dmesg > $DMESG_LOG && echo '=== dmesg saved to $DMESG_LOG ==='"
 
 print_color "$BLUE" "Booting VM and running tests..."
 print_color "$YELLOW" "Command: $TEST_CMD"
+print_color "$BLUE" "dmesg will be saved to: $DMESG_LOG"
 echo
 
 # Change to kernel directory (required by vng)
@@ -200,30 +204,19 @@ if [ "$KVM" = "disabled" ]; then
     KVM_ARG="--disable-kvm"
 fi
 
-# Create log file for console output
-CONSOLE_LOG="/tmp/sched-deadline-console-$(date +%Y%m%d-%H%M%S).log"
-print_color "$BLUE" "Console/dmesg output will be saved to: $CONSOLE_LOG"
-echo
-
 # Run virtme-ng with test suite mounted
-# Use QEMU's -serial option to log console to file
 vng --run \
     --force-9p \
     --rwdir "$TEST_DIR" \
     --cwd "$TEST_DIR" \
     --memory "$MEMORY" \
     --cpus "$CPUS" \
-    --append "sched_verbose console=ttyS0" \
-    --qemu-opts="-serial" \
-    --qemu-opts="file:$CONSOLE_LOG" \
+    --append "sched_verbose loglevel=8 console=ttyS0" \
     $KVM_ARG \
     $VIRTME_OPTS \
     --exec "$TEST_CMD"
 
 EXIT_CODE=$?
-
-echo
-print_color "$BLUE" "Console log saved to: $CONSOLE_LOG"
 
 echo
 if [ $EXIT_CODE -eq 0 ]; then
