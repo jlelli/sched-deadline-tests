@@ -69,12 +69,12 @@ PID3=$!
 trace_write "Sleep for 2s"
 sleep 2
 
-trace_write "Attaching a (10,20) reservation to $PID1"
-# budget 10ms, period 20ms
-#
-chrt -d --sched-runtime 10000000 --sched-deadline 20000000 --sched-period 20000000 -p 0 $PID1
+trace_write "Attaching a (9,20) reservation to $PID1"
+# budget 9ms, period 20ms (45% CPU)
+# With 5% fair_server: 45% + 5% = 50% < 95% - should fit
+chrt -d --sched-runtime 9000000 --sched-deadline 20000000 --sched-period 20000000 -p 0 $PID1
 if [ $? -ne 0 ]; then
-  test_fail "couldn't attachd $PID1 to (10,20)"
+  test_fail "couldn't attach $PID1 to (9,20)"
   tear_down
   exit 1
 fi
@@ -82,12 +82,12 @@ fi
 trace_write "Sleep for 1s"
 sleep 1
 
-trace_write "Attaching a (8,20) reservation to $PID2"
-# budget 8ms, period 20ms
-#
-chrt -d --sched-runtime 8000000 --sched-deadline 20000000 --sched-period 20000000 -p 0 $PID2
+trace_write "Attaching a (7,20) reservation to $PID2"
+# budget 7ms, period 20ms (35% CPU)
+# Total: 45% + 35% = 80%, with fair_server: 80% + 5% = 85% < 95% - should fit
+chrt -d --sched-runtime 7000000 --sched-deadline 20000000 --sched-period 20000000 -p 0 $PID2
 if [ $? -ne 0 ]; then
-  test_fail "couldn't attachd $PID2 to (8,20)"
+  test_fail "couldn't attach $PID2 to (7,20)"
   tear_down
   exit 1
 fi
@@ -96,11 +96,11 @@ trace_write "Sleep for 1s"
 sleep 1
 
 trace_write "Attaching a (4,20) reservation to $PID3"
-# budget 4ms, period 20ms
-#
+# budget 4ms, period 20ms (20% CPU)
+# Total would be: 80% + 20% = 100%, with fair_server: 100% + 5% = 105% > 95%
 chrt -d --sched-runtime 4000000 --sched-deadline 20000000 --sched-period 20000000 -p 0 $PID3
 if [ $? -ne 0 ]; then
-  test_fail "couldn't attachd $PID3 to (4,20)"
+  test_fail "couldn't attach $PID3 to (4,20)"
   tear_down
   exit 1
 fi
@@ -144,13 +144,15 @@ fi
 trace_write "Sleep for 2s"
 sleep 2
 
-trace_write "Trying to update the reservation of $PID1 to (6,20)"
+trace_write "Trying to update the reservation of $PID1 to (5,20)"
 
-# budget 6ms, same period 20ms
-#
-chrt -d --sched-runtime 6000000 --sched-deadline 20000000 --sched-period 20000000 -p 0 $PID1
+# budget 5ms, same period 20ms (25% CPU)
+# This reduces total from 80% to 60% (25% + 35%)
+# With fair_server: 60% + 5% = 65%, leaving room for PID3's 20%
+# Total would be: 60% + 20% = 80%, with fair_server: 80% + 5% = 85% < 95% - should fit
+chrt -d --sched-runtime 5000000 --sched-deadline 20000000 --sched-period 20000000 -p 0 $PID1
 if [ $? -ne 0 ]; then
-  test_fail "couldn't attachd $PID1 to (6,20)"
+  test_fail "couldn't attach $PID1 to (5,20)"
   tear_down
   exit 1
 fi
