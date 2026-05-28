@@ -51,7 +51,9 @@ trace_write() {
     echo $1 > /sys/kernel/debug/tracing/trace_marker
   fi
   # Also write to dmesg for easy correlation with kernel messages
-  echo "[TEST] $1" > /dev/kmsg 2>/dev/null || true
+  # Remove "test_" prefix from test name for shorter markers
+  local short_name="${TNAME#test_}"
+  echo "[$short_name] $1" > /dev/kmsg 2>/dev/null || true
 }
 
 dump_on_oops() {
