@@ -31,7 +31,7 @@ print_test_info
 dump_on_oops
 trace_start
 
-trace_write "TEST $TNAME START"
+test_start
 
 trace_write "Launch pthread_test [inherit]"
 ./pthread_test inherit &
@@ -47,13 +47,13 @@ wait $PID
 RES=$?
 
 if [ $RES -eq 0 ]; then
-  trace_write "PASS"
+  test_pass
 else
-  trace_write "FAIL: pthread_test exited with $RES"
+  test_fail "pthread_test exited with $RES"
   tear_down
   exit 1
 fi
-trace_write "TEST $TNAME FINISH"
+
 tear_down
 sleep 1
 

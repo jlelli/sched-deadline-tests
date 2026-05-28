@@ -27,19 +27,19 @@ dump_on_oops
 
 trace_start
 
-trace_write "TEST $TNAME START"
+test_start
 trace_write "Running pi-cfs-bug-repro"
 
 ./pi-cfs-bug-repro
 RES=$?
 
 if [ $RES -eq 0 ]; then
-  trace_write "PASS"
-  trace_write "TEST $TNAME FINISH"
+  test_pass
+  
   tear_down
   exit 0
 else
-  trace_write "FAIL: pi-cfs-bug-repro exited with $RES"
+  test_fail "pi-cfs-bug-repro exited with $RES"
   tear_down
   exit 1
 fi

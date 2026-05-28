@@ -27,19 +27,19 @@ dump_on_oops
 
 trace_start
 
-trace_write "TEST $TNAME START"
+test_start
 trace_write "Running test_dl_replenish_bug"
 
 ./test_dl_replenish_bug
 RES=$?
 
 if [ $RES -eq 0 ]; then
-  trace_write "PASS"
-  trace_write "TEST $TNAME FINISH"
+  test_pass
+  
   tear_down
   exit 0
 else
-  trace_write "FAIL: test_dl_replenish_bug exited with $RES"
+  test_fail "test_dl_replenish_bug exited with $RES"
   tear_down
   exit 1
 fi

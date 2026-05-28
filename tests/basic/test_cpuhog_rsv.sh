@@ -21,8 +21,8 @@ print_test_info
 
 dump_on_oops
 trace_start
+test_start
 
-trace_write "start $TNAME"
 # budget 10ms, deadline 100ms, period 100ms
 chrt -d --sched-runtime 10000000 --sched-deadline 100000000 --sched-period 100000000 0 ./cpuhog &
 
@@ -33,7 +33,7 @@ PID=$(ps -eo comm,pid | grep '^cpuhog' | awk '{ print $2 }')
 trace_write "kill $PID"
 kill -9 $PID >/dev/null 2>&1
 
-trace_write "end $TNAME"
+test_pass
 trace_stop
 trace_extract
 

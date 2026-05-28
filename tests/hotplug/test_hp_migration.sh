@@ -29,6 +29,7 @@ print_test_info
 
 dump_on_oops
 trace_start
+test_start
 
 trace_write "start $TNAME"
 
@@ -57,7 +58,7 @@ for i in $(seq 1 ${RUNS}); do
   trace_write "turning off CPU ${CPU}"
   echo 0 > /sys/devices/system/cpu/cpu${CPU}/online
   if [ $? -ne 0 ]; then
-    trace_write "FAIL: couldn't turn CPU ${CPU} off"
+    test_fail "couldn't turn CPU ${CPU} off"
     tear_down
     exit 1
   fi
@@ -72,12 +73,12 @@ done
 trace_write "enabling admission control"
 echo 950000 > /proc/sys/kernel/sched_rt_runtime_us
 if [ $? -ne 0 ]; then
-  trace_write "FAIL: couldn't enable AC"
+  test_fail "couldn't enable AC"
   tear_down
   exit 1
 fi
 
-trace_write "PASS"
+test_pass
 trace_write "TEST $TNAME FINISH"
 trace_stop
 trace_extract

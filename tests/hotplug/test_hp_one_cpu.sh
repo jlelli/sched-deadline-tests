@@ -42,6 +42,7 @@ if [ "$(detect_cgroup_version)" = "v1" ]; then
 fi
 
 trace_start
+test_start
 
 trace_write "Configuring exclusive cpusets"
 setup_cpuset ${CPUSET_DIR} cpuset-work "0-2" 0
@@ -69,7 +70,7 @@ move_task_to_cgroup ${CPUSET_DIR} cpusetA $PID
 if [ $? -eq 0 ]; then
   trace_write "Task moved to new cpuset"
 else
-  trace_write "FAIL: task couldn't attach"
+  test_fail "task couldn't attach"
   tear_down
   exit 1
 fi
@@ -88,12 +89,12 @@ for i in $(seq 1 ${RUNS}); do
   echo 0 > /sys/devices/system/cpu/cpu${CPU}/online
   RES=$?
   if [ $ONLINE_CPUS -gt 1 ] && [ $RES -ne 0 ]; then
-    trace_write "FAIL: couldn't turn CPU ${CPU} off"
+    test_fail "couldn't turn CPU ${CPU} off"
     tear_down
     exit 1
   fi
   if [ $ONLINE_CPUS -eq 1 ] && [ $RES -ne 1 ]; then
-    trace_write "FAIL: CPU ${CPU} has been turned off!"
+    test_fail "CPU ${CPU} has been turned off!"
     trace_write "turning on CPU ${CPU}"
     echo 1 > /sys/devices/system/cpu/cpu${CPU}/online
     tear_down
@@ -113,7 +114,7 @@ done
 trace_write "Sleep for 2s"
 sleep 2
 
-trace_write "PASS"
+test_pass
 tear_down
 
 exit 0

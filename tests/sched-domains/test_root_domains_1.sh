@@ -27,6 +27,7 @@ mount -t cgroup -o cpuset cpuset ${CPUSET_DIR}
 
 dump_on_oops
 trace_start
+test_start
 
 trace_write "Launch 1 process"
 ./burn &

@@ -40,6 +40,7 @@ fi
 
 dump_on_oops
 trace_start
+test_start
 
 trace_write "Configuring exclusive cpusets"
 trace_write "Configuring cpuset: cpusetA[3]"
@@ -70,7 +71,7 @@ move_task_to_cgroup ${CPUSET_DIR} cpusetA $PID
 if [ $? -eq 0 ]; then
   trace_write "Task moved to new cpuset"
 else
-  trace_write "FAIL: task couldn't attach"
+  test_fail "task couldn't attach"
   tear_down
   exit 1
 fi
@@ -97,6 +98,6 @@ trace_write "Sleep for 2s"
 sleep 2
 
 tear_down
-trace_write "PASS"
+test_pass
 
 exit 0

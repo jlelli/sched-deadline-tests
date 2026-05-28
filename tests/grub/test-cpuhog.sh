@@ -24,6 +24,7 @@ cleanup() {
 trap cleanup SIGINT SIGTERM
 
 print_test_info
+test_start
 
 trace_start
 #disable_ac

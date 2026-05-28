@@ -20,8 +20,8 @@ print_test_info
 
 dump_on_oops
 trace_start
+test_start
 
-trace_write "start $TNAME"
 ./cpuhog &
 PID=$!
 
@@ -44,7 +44,7 @@ done
 echo
 
 kill -9 $PID
-trace_write "end $TNAME"
+test_pass
 
 trace_stop
 trace_extract

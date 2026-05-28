@@ -23,7 +23,7 @@ EVENTS="sched_wakeup* sched_switch sched_migrate*"
 CPUSET_DIR=/sys/fs/cgroup
 
 pass() {
-  trace_write "PASS"
+  test_pass
 }
 
 tear_down() {
@@ -48,6 +48,7 @@ fi
 
 dump_on_oops
 trace_start
+test_start
 
 trace_write "Configuring exclusive cpusets"
 trace_write "Configuring cpuset: cpusetA[3]"
@@ -73,7 +74,7 @@ trace_write "Attaching a (10,20) reservation to $PID1"
 #
 chrt -d --sched-runtime 10000000 --sched-deadline 20000000 --sched-period 20000000 -p 0 $PID1
 if [ $? -ne 0 ]; then
-  trace_write "FAIL: couldn't attachd $PID1 to (10,20)"
+  test_fail "couldn't attachd $PID1 to (10,20)"
   tear_down
   exit 1
 fi
@@ -86,7 +87,7 @@ trace_write "Attaching a (8,20) reservation to $PID2"
 #
 chrt -d --sched-runtime 8000000 --sched-deadline 20000000 --sched-period 20000000 -p 0 $PID2
 if [ $? -ne 0 ]; then
-  trace_write "FAIL: couldn't attachd $PID2 to (8,20)"
+  test_fail "couldn't attachd $PID2 to (8,20)"
   tear_down
   exit 1
 fi
@@ -99,7 +100,7 @@ trace_write "Attaching a (4,20) reservation to $PID3"
 #
 chrt -d --sched-runtime 4000000 --sched-deadline 20000000 --sched-period 20000000 -p 0 $PID3
 if [ $? -ne 0 ]; then
-  trace_write "FAIL: couldn't attachd $PID3 to (4,20)"
+  test_fail "couldn't attachd $PID3 to (4,20)"
   tear_down
   exit 1
 fi
@@ -113,7 +114,7 @@ move_task_to_cgroup ${CPUSET_DIR} cpusetA $PID1
 if [ $? -eq 0 ]; then
   trace_write "OK: task moved to new cpuset"
 else
-  trace_write "FAIL: task couldn't attach"
+  test_fail "task couldn't attach"
   tear_down
   exit 1
 fi
@@ -124,7 +125,7 @@ move_task_to_cgroup ${CPUSET_DIR} cpusetA $PID2
 if [ $? -eq 0 ]; then
   trace_write "OK: task moved to new cpuset"
 else
-  trace_write "FAIL: task couldn't attach"
+  test_fail "task couldn't attach"
   tear_down
   exit 1
 fi
@@ -133,7 +134,7 @@ trace_write "moving ${PID3} to cpusetA"
 
 move_task_to_cgroup ${CPUSET_DIR} cpusetA $PID3
 if [ $? -eq 0 ]; then
-  trace_write "FAIL: task moved to new cpuset"
+  test_fail "task moved to new cpuset"
   tear_down
   exit 1
 else
@@ -149,7 +150,7 @@ trace_write "Trying to update the reservation of $PID1 to (6,20)"
 #
 chrt -d --sched-runtime 6000000 --sched-deadline 20000000 --sched-period 20000000 -p 0 $PID1
 if [ $? -ne 0 ]; then
-  trace_write "FAIL: couldn't attachd $PID1 to (6,20)"
+  test_fail "couldn't attachd $PID1 to (6,20)"
   tear_down
   exit 1
 fi
@@ -160,7 +161,7 @@ move_task_to_cgroup ${CPUSET_DIR} cpusetA $PID3
 if [ $? -eq 0 ]; then
   trace_write "OK: task moved to new cpuset"
 else
-  trace_write "FAIL: task couldn't attach"
+  test_fail "task couldn't attach"
   tear_down
   exit 1
 fi
@@ -169,6 +170,6 @@ trace_write "Sleep for 2s"
 sleep 2
 
 tear_down
-trace_write "PASS"
+test_pass
 
 exit 0

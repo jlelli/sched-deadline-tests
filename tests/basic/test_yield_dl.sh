@@ -21,10 +21,10 @@ print_test_info
 
 dump_on_oops
 trace_start
+test_start
 
-trace_write "start $TNAME"
 ./periodic_yield
-trace_write "end $TNAME"
+test_pass
 
 trace_stop
 trace_extract
