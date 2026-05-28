@@ -181,17 +181,20 @@ echo
 
 # Build test command to run inside VM
 # Note: virtme-ng --rwdir mounts at the same path as host, and --cwd sets working dir
-# Write dmesg to the shared test directory so it's accessible from host
-DMESG_LOG="${TEST_DIR}/dmesg-$(date +%Y%m%d-%H%M%S).log"
+# Write both test output and dmesg to the shared test directory
+TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
+DMESG_LOG="${TEST_DIR}/dmesg-${TIMESTAMP}.log"
+OUTPUT_LOG="${TEST_DIR}/output-${TIMESTAMP}.log"
 TEST_CMD="dmesg -C && make clean && make && ./run-tests.sh"
 [ -n "$CATEGORY" ] && TEST_CMD+=" --category $CATEGORY"
 [ -n "$SPECIFIC_TEST" ] && TEST_CMD+=" --test $SPECIFIC_TEST"
 [ -n "$VERBOSE" ] && TEST_CMD+=" --verbose"
 [ -n "$TRACE" ] && TEST_CMD+=" --trace"
-TEST_CMD+=" ; dmesg > $DMESG_LOG && echo '=== dmesg saved to $DMESG_LOG ==='"
+TEST_CMD+=" 2>&1 | tee $OUTPUT_LOG ; dmesg > $DMESG_LOG && echo '=== dmesg saved to $DMESG_LOG ===' && echo '=== output saved to $OUTPUT_LOG ==='"
 
 print_color "$BLUE" "Booting VM and running tests..."
 print_color "$YELLOW" "Command: $TEST_CMD"
+print_color "$BLUE" "Output will be saved to: $OUTPUT_LOG"
 print_color "$BLUE" "dmesg will be saved to: $DMESG_LOG"
 echo
 
