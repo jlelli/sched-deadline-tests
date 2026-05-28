@@ -214,7 +214,8 @@ vng --run \
     --memory "$MEMORY" \
     --cpus "$CPUS" \
     --append "sched_verbose console=ttyS0" \
-    --qemu-opts "-serial file:$CONSOLE_LOG" \
+    --qemu-opts="-serial" \
+    --qemu-opts="file:$CONSOLE_LOG" \
     $KVM_ARG \
     $VIRTME_OPTS \
     --exec "$TEST_CMD"
