@@ -30,10 +30,11 @@ for i in `seq 0 $SWITCHES`; do
   if [[ $((i % 2)) == 0 ]]; then
     usec=$(random 1 10)
     trace_write "setting $PID to (${usec},100) [$(( $SWITCHES - $i)) to go]"
-    schedtool -E -t ${usec}000000:100000000 $PID
+    # budget = usec*1000000, deadline = 100ms, period = 100ms
+    chrt -d --sched-runtime ${usec}000000 --sched-deadline 100000000 --sched-period 100000000 -p 0 $PID
   else
     trace_write "setting $PID to normal [$(( $SWITCHES - $i)) to go]"
-    schedtool -N $PID
+    chrt -o -p 0 $PID
   fi
 
   sleep_for=$(random 1 99)
