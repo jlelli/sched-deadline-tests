@@ -198,6 +198,9 @@ run_test() {
     if [ $exit_code -eq 124 ]; then
         result="TIMEOUT"
         FAILED_TESTS=$((FAILED_TESTS + 1))
+    elif grep -q "TEST_SKIP" "$output_file" || [ $exit_code -eq 77 ]; then
+        result="SKIP"
+        SKIPPED_TESTS=$((SKIPPED_TESTS + 1))
     elif grep -q "TEST_PASSED" "$output_file" || [ $exit_code -eq 0 ]; then
         result="PASS"
         PASSED_TESTS=$((PASSED_TESTS + 1))
@@ -211,6 +214,13 @@ run_test() {
         text)
             if [ "$result" = "PASS" ]; then
                 log_pass "$test_path (${duration}s)"
+            elif [ "$result" = "SKIP" ]; then
+                log_skip "$test_path (${duration}s)"
+                if [ $VERBOSE -eq 0 ]; then
+                    echo "--- Last 20 lines of output ---"
+                    tail -20 "$output_file"
+                    echo "--- End output ---"
+                fi
             elif [ "$result" = "TIMEOUT" ]; then
                 print_color "$YELLOW" "[TIMEOUT] $test_path (${TEST_TIMEOUT}s)"
                 if [ $VERBOSE -eq 0 ]; then
@@ -231,6 +241,8 @@ run_test() {
             local test_num=$TOTAL_TESTS
             if [ "$result" = "PASS" ]; then
                 echo "ok $test_num - $test_path"
+            elif [ "$result" = "SKIP" ]; then
+                echo "ok $test_num - $test_path # SKIP"
             else
                 echo "not ok $test_num - $test_path"
             fi

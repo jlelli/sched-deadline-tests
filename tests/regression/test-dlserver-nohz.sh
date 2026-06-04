@@ -2,6 +2,13 @@
 # Test script to reproduce dl-server timer firing on nohz_full isolated CPUs
 # Issue: dl-server timers should not fire on isolated CPUs running only SCHED_OTHER tasks
 
+# Source test utilities for test_skip helper
+SCRIPT_DIR=$(dirname "$0")
+if [ -f "$SCRIPT_DIR/../../lib/utils.sh" ]; then
+    . "$SCRIPT_DIR/../../lib/utils.sh"
+    TNAME=$(basename "$0" .sh)
+fi
+
 set -e
 
 # Configuration
@@ -37,13 +44,19 @@ check_nohz_full() {
     else
         log_error "/sys/devices/system/cpu/nohz_full not found"
         log_error "Make sure kernel is booted with nohz_full=2-7"
-        exit 1
+        if [ -n "$TNAME" ]; then
+            test_skip "nohz_full not configured"
+        fi
+        exit 77
     fi
 
     # Check if isolated CPU is in nohz_full
     if ! echo "$nohz_cpus" | grep -q "$ISOLATED_CPU"; then
         log_error "CPU $ISOLATED_CPU is not in nohz_full list: $nohz_cpus"
-        exit 1
+        if [ -n "$TNAME" ]; then
+            test_skip "CPU $ISOLATED_CPU not in nohz_full list"
+        fi
+        exit 77
     fi
 
     log_info "CPU $ISOLATED_CPU is properly configured for nohz_full"
@@ -55,7 +68,10 @@ setup_tracing() {
     # Check if trace-cmd is available
     if ! command -v trace-cmd &> /dev/null; then
         log_error "trace-cmd not found. Please install trace-cmd package."
-        exit 1
+        if [ -n "$TNAME" ]; then
+            test_skip "trace-cmd not installed"
+        fi
+        exit 77
     fi
 
     # Set up kprobes for dl_server_start and dl_server_stop

@@ -30,6 +30,11 @@ test_fail() {
   trace_write "===== TEST FAIL: $TNAME - $msg ====="
 }
 
+test_skip() {
+  local msg="$1"
+  trace_write "===== TEST SKIP: $TNAME - $msg ====="
+}
+
 trace_start() {
   if [[ -n "$TRACE" && ${TRACE} -eq 1 ]]; then
     tracing=1
