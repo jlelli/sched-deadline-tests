@@ -22,6 +22,39 @@ TRACE=${1-0}
 EVENTS="sched_wakeup* sched_switch sched_migrate*"
 CPUSET_DIR=/sys/fs/cgroup
 
+dump_dl_bandwidth() {
+  local label="$1"
+  trace_write "===== DL BANDWIDTH DUMP: $label ====="
+  echo ""
+  echo "===== DL BANDWIDTH DUMP: $label ====="
+  echo "DEBUG: VMLINUX=$VMLINUX"
+  echo "DEBUG: DL_BW_DUMP=$DL_BW_DUMP"
+
+  if [ -z "$VMLINUX" ] || [ ! -f "$VMLINUX" ]; then
+    echo "WARNING: VMLINUX='$VMLINUX' not set or not found, skipping bandwidth dump"
+    trace_write "WARNING: VMLINUX not set, skipping bandwidth dump"
+    return
+  fi
+
+  if [ -z "$DL_BW_DUMP" ] || [ ! -f "$DL_BW_DUMP" ]; then
+    echo "WARNING: DL_BW_DUMP not set or not found, skipping bandwidth dump"
+    trace_write "WARNING: DL_BW_DUMP not set, skipping bandwidth dump"
+    return
+  fi
+
+  if ! command -v drgn &> /dev/null; then
+    echo "WARNING: drgn not installed, skipping bandwidth dump"
+    trace_write "WARNING: drgn not installed"
+    return
+  fi
+
+  # Run drgn against the running kernel (no -s flag needed in VM)
+  drgn "$DL_BW_DUMP" 2>&1 | tee -a /tmp/dl_bw_dump_${TNAME}.log
+  echo "===== END DL BANDWIDTH DUMP ====="
+  trace_write "===== END DL BANDWIDTH DUMP ====="
+  echo ""
+}
+
 tear_down() {
   trace_write "kill $PID1 $PID2 $PID3 $PID4"
   kill -TERM $PID1 $PID2 $PID3 $PID4 2>/dev/null
@@ -184,6 +217,8 @@ fi
 trace_write "Sleep for 1s"
 sleep 1
 
+dump_dl_bandwidth "All 4 tasks assigned to cpusets (initial state)"
+
 trace_write "trying to move ${PID2} to cpusetA"
 move_task_to_cgroup ${CPUSET_DIR} cpusetA $PID2
 if [ $? -eq 0 ]; then
@@ -212,6 +247,8 @@ fi
 trace_write "Sleep for 1s"
 sleep 1
 
+dump_dl_bandwidth "Before reducing PID4 bandwidth"
+
 trace_write "Modifing to (1,20) $PID4 reservation"
 # budget 1ms, period 20ms
 #
@@ -224,6 +261,8 @@ fi
 
 trace_write "Sleep for 1s"
 sleep 1
+
+dump_dl_bandwidth "After reducing PID4 to (1,20), before shrinking cpusetB"
 
 trace_write "trying to move ${PID2} to cpusetA (borrowing CPU 1 from cpusetB)"
 /bin/echo 2 >  ${CPUSET_DIR}/cpusetB/cpuset.cpus

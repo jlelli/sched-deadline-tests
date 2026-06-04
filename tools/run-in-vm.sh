@@ -165,11 +165,26 @@ fi
 KERNEL_PATH=$(realpath "$KERNEL_PATH")
 TEST_DIR=$(realpath "$(dirname "$0")/..")
 
+# Find kernel source tree (may be different from build directory)
+# For out-of-tree builds, the build dir often has 'build' in the name and source is ../
+KERNEL_SRC="$KERNEL_PATH"
+if [ ! -f "$KERNEL_PATH/tools/sched/dl_bw_dump.py" ]; then
+    # Try parent directory (common for build/ subdirectories)
+    if [ -f "$(dirname "$KERNEL_PATH")/tools/sched/dl_bw_dump.py" ]; then
+        KERNEL_SRC="$(realpath "$(dirname "$KERNEL_PATH")")"
+    fi
+fi
+
+# Verify paths for debug tools
+VMLINUX_PATH="${KERNEL_PATH}/vmlinux"
+DL_BW_DUMP_PATH="${KERNEL_SRC}/tools/sched/dl_bw_dump.py"
+
 print_color "$BLUE" "=========================================="
 print_color "$BLUE" "SCHED_DEADLINE Test Runner (virtme-ng)"
 print_color "$BLUE" "=========================================="
 echo
 echo "Kernel:       $KERNEL_PATH"
+echo "Source:       $KERNEL_SRC"
 echo "Tests:        $TEST_DIR"
 echo "Memory:       $MEMORY"
 echo "CPUs:         $CPUS"
@@ -185,7 +200,8 @@ echo
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 DMESG_LOG="${TEST_DIR}/dmesg-${TIMESTAMP}.log"
 OUTPUT_LOG="${TEST_DIR}/output-${TIMESTAMP}.log"
-TEST_CMD="dmesg -C && make clean && make && ./run-tests.sh"
+# Export paths for debug tools (dl_bw_dump.py needs vmlinux from build, script from source)
+TEST_CMD="uname -a && export VMLINUX='${VMLINUX_PATH}' && export DL_BW_DUMP='${DL_BW_DUMP_PATH}' && dmesg -C && make clean && make && ./run-tests.sh"
 [ -n "$CATEGORY" ] && TEST_CMD+=" --category $CATEGORY"
 [ -n "$SPECIFIC_TEST" ] && TEST_CMD+=" --test $SPECIFIC_TEST"
 [ -n "$VERBOSE" ] && TEST_CMD+=" --verbose"
@@ -198,17 +214,21 @@ print_color "$BLUE" "Output will be saved to: $OUTPUT_LOG"
 print_color "$BLUE" "dmesg will be saved to: $DMESG_LOG"
 echo
 
-# Change to kernel directory (required by vng)
-cd "$KERNEL_PATH"
-
 # Build KVM argument
 KVM_ARG=""
 if [ "$KVM" = "disabled" ]; then
     KVM_ARG="--disable-kvm"
 fi
 
-# Run virtme-ng with test suite mounted
-vng --run \
+# Find the kernel image (bzImage for x86_64)
+BZIMAGE="${KERNEL_PATH}/arch/x86/boot/bzImage"
+if [ ! -f "$BZIMAGE" ]; then
+    print_color "$RED" "ERROR: Kernel image not found at $BZIMAGE"
+    exit 1
+fi
+
+# Run virtme-ng with explicit kernel path
+vng --run "$BZIMAGE" \
     --force-9p \
     --rwdir "$TEST_DIR" \
     --cwd "$TEST_DIR" \
