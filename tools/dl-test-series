@@ -1,0 +1,124 @@
+#!/bin/bash
+# dl-test-series — Mutt-side dispatcher for SCHED_DEADLINE patch testing
+#
+# Receives a raw email on stdin (via mutt's pipe-message), extracts the
+# Message-Id, and dispatches dl-test-worker.sh either locally or on a
+# remote server via SSH.
+#
+# Mutt config:
+#   macro index ,t "<pipe-message>~/.local/bin/dl-test-series\n" "Test DL series (VM)"
+#   macro pager ,t "<pipe-message>~/.local/bin/dl-test-series\n" "Test DL series (VM)"
+#   macro index ,T "<pipe-message>~/.local/bin/dl-test-series --sut\n" "Test DL series (VM+SUT)"
+#   macro pager ,T "<pipe-message>~/.local/bin/dl-test-series --sut\n" "Test DL series (VM+SUT)"
+
+set -euo pipefail
+
+CONF="${DL_TEST_CONF:-${XDG_CONFIG_HOME:-$HOME/.config}/dl-test/config}"
+
+# Defaults
+DL_TEST_REMOTE="localhost"
+DL_TEST_WORK_DIR="$HOME/Work/kernel/dl-test"
+DL_TEST_SUITE_DIR=""
+DL_TEST_KERNEL_REPO="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git"
+DL_TEST_KERNEL_DIR="$HOME/Work/kernel/dl-test/linux"
+DL_TEST_KERNEL_BRANCH="master"
+DL_TEST_KB="$HOME/Work/kernel/linux-kernel-utils/kbuild.sh"
+SASHIKO_URL="https://sashiko.dev"
+DL_TEST_EMAIL=""
+DL_TEST_SEND_EMAIL="yes"
+SASHIKO_MAX_RETRIES=5
+DL_TEST_VM_CPUS=8
+DL_TEST_VM_MEMORY="2G"
+
+if [ -f "$CONF" ]; then
+    # shellcheck source=/dev/null
+    . "$CONF"
+fi
+
+SUT_FLAG=""
+DRY_RUN=""
+KERNEL_BRANCH_OVERRIDE=""
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --sut)
+            SUT_FLAG="--sut"
+            shift
+            ;;
+        --dry-run)
+            DRY_RUN="--dry-run"
+            shift
+            ;;
+        --branch)
+            KERNEL_BRANCH_OVERRIDE="$2"
+            shift 2
+            ;;
+        *)
+            echo "Unknown option: $1" >&2
+            exit 1
+            ;;
+    esac
+done
+
+# Read the email from stdin and extract Message-Id
+EMAIL=$(cat)
+MSG_ID=$(echo "$EMAIL" | grep -i '^Message-I[dD]:' | head -1 | sed 's/^[^:]*:[ \t]*//' | tr -d '<>' | tr -d '[:space:]')
+
+if [ -z "$MSG_ID" ]; then
+    echo "ERROR: Could not extract Message-Id from email" >&2
+    exit 1
+fi
+
+# Extract subject for display
+SUBJECT=$(echo "$EMAIL" | grep -i '^Subject:' | head -1 | sed 's/^[^:]*:[ \t]*//')
+
+# Short message-id for tmux session naming (first component before @)
+SHORT_ID=$(echo "$MSG_ID" | sed 's/@.*//' | tr -c '[:alnum:]-' '_' | head -c 40)
+
+# Build worker command
+WORKER_SCRIPT="${DL_TEST_SUITE_DIR}/tools/dl-test-worker.sh"
+WORKER_CMD="$WORKER_SCRIPT --message-id '$MSG_ID'"
+[ -n "$SUT_FLAG" ] && WORKER_CMD+=" $SUT_FLAG"
+[ -n "$DRY_RUN" ] && WORKER_CMD+=" $DRY_RUN"
+[ -n "$KERNEL_BRANCH_OVERRIDE" ] && WORKER_CMD+=" --branch '$KERNEL_BRANCH_OVERRIDE'"
+
+# Export config for the worker
+export DL_TEST_WORK_DIR DL_TEST_SUITE_DIR DL_TEST_KERNEL_REPO DL_TEST_KERNEL_DIR
+export DL_TEST_KERNEL_BRANCH DL_TEST_KB SASHIKO_URL DL_TEST_EMAIL DL_TEST_SEND_EMAIL
+export SASHIKO_MAX_RETRIES DL_TEST_VM_CPUS DL_TEST_VM_MEMORY
+
+if [ "$DL_TEST_REMOTE" = "localhost" ]; then
+    # Local execution: run in a detached tmux session
+    SESSION_NAME="dl-test-${SHORT_ID}"
+    tmux new-session -d -s "$SESSION_NAME" "bash -c '$WORKER_CMD; echo \"Press enter to close\"; read'" 2>/dev/null || {
+        # Fallback: run in background
+        bash -c "$WORKER_CMD" &>/dev/null &
+        echo "Dispatched (bg pid $!): $MSG_ID"
+        echo "  Subject: $SUBJECT"
+        exit 0
+    }
+    echo "Dispatched (tmux: $SESSION_NAME): $MSG_ID"
+    echo "  Subject: $SUBJECT"
+    echo "  Attach: tmux attach -t $SESSION_NAME"
+else
+    # Remote execution: SSH + tmux on the remote
+    SESSION_NAME="dl-test-${SHORT_ID}"
+    # shellcheck disable=SC2029
+    ssh "$DL_TEST_REMOTE" \
+        "tmux new-session -d -s '$SESSION_NAME' \
+         'DL_TEST_WORK_DIR=$DL_TEST_WORK_DIR \
+          DL_TEST_SUITE_DIR=$DL_TEST_SUITE_DIR \
+          DL_TEST_KERNEL_REPO=$DL_TEST_KERNEL_REPO \
+          DL_TEST_KERNEL_DIR=$DL_TEST_KERNEL_DIR \
+          DL_TEST_KERNEL_BRANCH=$DL_TEST_KERNEL_BRANCH \
+          SASHIKO_URL=$SASHIKO_URL \
+          DL_TEST_EMAIL=$DL_TEST_EMAIL \
+          DL_TEST_SEND_EMAIL=$DL_TEST_SEND_EMAIL \
+          SASHIKO_MAX_RETRIES=$SASHIKO_MAX_RETRIES \
+          DL_TEST_VM_CPUS=$DL_TEST_VM_CPUS \
+          DL_TEST_VM_MEMORY=$DL_TEST_VM_MEMORY \
+          bash -c \"$WORKER_CMD; echo Press enter to close; read\"'"
+    echo "Dispatched to $DL_TEST_REMOTE (tmux: $SESSION_NAME): $MSG_ID"
+    echo "  Subject: $SUBJECT"
+    echo "  Attach: ssh -t $DL_TEST_REMOTE tmux attach -t $SESSION_NAME"
+fi

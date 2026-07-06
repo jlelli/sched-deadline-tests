@@ -1,0 +1,37 @@
+# dl-test configuration
+# Copy to ~/.config/dl-test/config and adjust values.
+
+# Remote server for running tests. Set to "localhost" for local execution.
+DL_TEST_REMOTE="localhost"
+
+# Remote working directory (must exist). Series worktrees are created under
+# $DL_TEST_WORK_DIR/series/<message-id-short>/
+DL_TEST_WORK_DIR="$HOME/Work/kernel/dl-test"
+
+# Path to the sched-deadline-tests repo (on the remote, or locally)
+DL_TEST_SUITE_DIR="$HOME/Work/kernel/sched-deadline-tests"
+
+# Kernel git repo to clone/use as base tree. The worker creates git worktrees
+# from this repo for each series.
+DL_TEST_KERNEL_REPO="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git"
+DL_TEST_KERNEL_DIR="$HOME/Work/kernel/dl-test/linux"
+DL_TEST_KERNEL_BRANCH="master"
+
+# Path to kbuild.sh (kb build) for kernel building
+DL_TEST_KB="$HOME/Work/kernel/linux-kernel-utils/kbuild.sh"
+
+# Sashiko API URL
+SASHIKO_URL="https://sashiko.dev"
+
+# Email address for result notifications (sent to yourself only)
+DL_TEST_EMAIL="juri.lelli@redhat.com"
+
+# Send result email (yes/no). When "no", results are only written to files.
+DL_TEST_SEND_EMAIL="yes"
+
+# Number of Sashiko retries when review is pending (2-minute intervals)
+SASHIKO_MAX_RETRIES=5
+
+# virtme-ng VM settings
+DL_TEST_VM_CPUS=8
+DL_TEST_VM_MEMORY="2G"
