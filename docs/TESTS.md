@@ -287,6 +287,35 @@ When run via `tools/run-in-vm.sh`, the `traces/` directory is mounted read-write
 
 ---
 
+### test_dl_exit_class_change.sh
+**Kernel bug**: `this_bw` double subtraction when changing the class of a dying SCHED_DEADLINE task (see docs/BUGS.md, bug #4)
+
+**Description**:
+Moving a SCHED_DEADLINE task out of the class with `sched_setscheduler(2)` after it stored TASK_DEAD in `do_task_dead()` but before its final `__schedule()` dequeued it subtracts the task's bandwidth from the runqueue's `this_bw` twice. `__sub_rq_bw()` warns about the underflow and `this_bw` stays corrupted until reboot, miscomputing GRUB reclaim on that CPU.
+
+**What it does**:
+- Picks two distinct CPUs from the current affinity mask
+- Forks a child on one CPU that becomes SCHED_DEADLINE and immediately exits
+- Parks the parent on the other CPU, then races `sched_setscheduler(child, SCHED_OTHER)` against the child's last `schedule()`:
+  - the parent blocks SIGCHLD and sleeps in `sigtimedwait()`, so it is woken the moment `exit_notify()` reports the child's exit — before the child's final context switch — without reaping it (the pid must stay valid for the class change)
+  - a random busy delay, drawn log-uniformly over a wide range of scales, sweeps the class change across the child's exit tail
+- Checks the kernel log for the resulting WARN_ON_ONCE splats from the deadline bandwidth accounting helpers
+
+**Expected with fix**: No deadline bandwidth accounting warnings in the kernel log.
+
+**Requirements**:
+- Root or CAP_SYS_NICE
+- At least 2 CPUs in the affinity mask
+- Affinity mask spanning the root domain (SCHED_DEADLINE admission control)
+
+**Run**: `sudo ./test_dl_exit_class_change.sh`
+
+**Caveats**:
+- The warnings are WARN_ON_ONCE (once per call site per boot), so retrying on an unfixed kernel requires a fresh boot. The whole kernel log is scanned rather than a delta, since an earlier occurrence in the same boot is equally a failure.
+- A clean run does not prove the fix: the race window is narrow (the class change must take the child's pi_lock between the TASK_DEAD store in `do_task_dead()` and the rq lock in `__schedule()` — a few dozen instructions). It is hit much more easily under QEMU TCG (`tools/run-in-vm.sh --no-kvm`) than on fast bare metal or KVM. The iteration count can be raised via `DL_EXIT_RACE_ITERS=<n>` or the first argument, and the maximum random delay via `DL_EXIT_RACE_MAX_SHIFT=<log2>` (default 15) if the arrival window cannot be reached on a given machine.
+
+---
+
 ## Tracing Support
 
 Most tests support kernel tracing via ftrace/trace-cmd:

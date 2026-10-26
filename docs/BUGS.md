@@ -100,6 +100,38 @@ DL server timer wasn't respecting nohz_full CPU configuration and could be armed
 
 ---
 
+### 4. this_bw Double Subtraction on Class Change of a Dying Task
+
+**Test**: `tests/regression/test_dl_exit_class_change.sh`
+
+**Kernel versions affected**: since 4.13, introduced by 8fd27231c330 ("sched/deadline: Track the \"total rq utilization\" too")
+
+**Symptom**: `WARNING: kernel/sched/deadline.c:NNN at task_non_contending+...` and related WARN_ON_ONCE splats from the deadline bandwidth accounting helpers (`__sub_rq_bw()` underflow, `running_bw > this_bw`, `__add_running_bw()`)
+
+**Description**:
+When a SCHED_DEADLINE task exits, `do_task_dead()` stores TASK_DEAD in `p->__state` and then calls `__schedule()`, which dequeues the task with DEQUEUE_SLEEP. If another CPU changes the class of the still queued, dying task with `sched_setscheduler(2)` in that window, the task's bandwidth is subtracted from its runqueue's `this_bw` twice: once by the DEQUEUE_SAVE dequeue in `dequeue_dl_entity()`, and once more by `task_non_contending()` (called from `switched_from_dl()`), which sees `p->__state == TASK_DEAD`.
+
+**Root cause**:
+The TASK_DEAD removal in `task_non_contending()` is only correct on the dying task's own DEQUEUE_SLEEP dequeue path, where nothing was subtracted before it; on the class change path the DEQUEUE_SAVE dequeue already removed the bandwidth.
+
+**Consequences**:
+- `this_bw` of the affected CPU stays wrong until reboot
+- GRUB reclaim for `SCHED_FLAG_RECLAIM` tasks on that CPU is miscomputed
+- Repeated warnings from later deadline bandwidth operations on that runqueue
+
+**Requirements to reproduce**:
+- Root or CAP_SYS_NICE
+- At least 2 online CPUs
+- The test must run with an affinity mask spanning the root domain (SCHED_DEADLINE admission control requirement)
+
+**Fix status**: Fixed by "sched/deadline: Fix this_bw on class change of a dying task", which performs the TASK_DEAD `sub_rq_bw()` only on the DEQUEUE_SLEEP path (`task_non_contending(dl_se, dl_task=true)`).
+
+**How to verify fix**: Run the test and check that the kernel log contains no deadline bandwidth accounting warnings. Two caveats:
+- The warnings are WARN_ON_ONCE (once per call site per boot), so an unfixed kernel must be booted afresh between attempts; the whole kernel log is scanned, since an earlier occurrence in the same boot is equally a failure.
+- A clean run does not prove the fix: the race window is narrow (a few instructions), so it is hit much more easily under QEMU TCG than on fast bare metal. Longer runs increase confidence.
+
+---
+
 ## Historical Bugs (May be tested indirectly)
 
 ### CPU Hotplug and Deadline Task Migration

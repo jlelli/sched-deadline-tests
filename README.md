@@ -159,6 +159,7 @@ Tests that reproduce specific kernel bugs:
 - **pi-cfs-bug-repro.c** - Priority inversion bug when deadline-boosted task boosts another task (v4.15)
 - **test_dl_replenish_bug.c** - Missing ENQUEUE_REPLENISH flag when deadline task is deboosted
 - **test-dlserver-nohz.sh** - DL server timer firing on nohz_full CPUs
+- **test_dl_exit_class_change.sh** - this_bw double subtraction when changing the class of a dying SCHED_DEADLINE task
 
 ## Documentation
 
