@@ -15,7 +15,12 @@ set -e
 ISOLATED_CPU=2
 TEST_DURATION=10
 TRACE_EVENTS="timer:hrtimer_start,timer:hrtimer_cancel,timer:hrtimer_expire_entry,timer:tick_stop,sched:sched_switch,sched:sched_wakeup,workqueue:workqueue_queue_work,workqueue:workqueue_activate_work,workqueue:workqueue_execute_start,workqueue:workqueue_execute_end,kprobes:probe_dl_server_start,kprobes:probe_dl_server_start_ret,kprobes:probe_dl_server_stop,kprobes:probe_dl_server_stop_ret"
-TRACE_OUTPUT="/home/jlelli/Work/kernel/vng-storage/dlserver-trace-$(date +%Y%m%d-%H%M%S).dat"
+# Trace output directory (overridable via TRACE_DIR env var).
+# Defaults to the repo's traces/ directory, which tools/run-in-vm.sh mounts
+# read-write into the VM, so traces persist on the host after the run.
+TRACE_DIR="${TRACE_DIR:-$(realpath -m "$SCRIPT_DIR/../../traces")}"
+TRACE_STAMP="$(date +%Y%m%d-%H%M%S)"
+TRACE_OUTPUT="${TRACE_DIR}/dlserver-trace-${TRACE_STAMP}.dat"
 
 # Colors for output
 RED='\033[0;31m'
@@ -73,6 +78,9 @@ setup_tracing() {
         fi
         exit 77
     fi
+
+    # Ensure the trace output directory exists (trace-cmd won't create it)
+    mkdir -p "$TRACE_DIR"
 
     # Set up kprobes for dl_server_start and dl_server_stop
     log_info "Setting up kprobes for dl_server_start and dl_server_stop..."
@@ -302,8 +310,8 @@ analyze_trace() {
         return 1
     fi
 
-    # Generate text report from trace.dat
-    TRACE_REPORT="/home/jlelli/Work/kernel/vng-storage/dlserver-trace-$(date +%Y%m%d-%H%M%S).txt"
+    # Generate text report from trace.dat (same timestamp as the .dat file)
+    TRACE_REPORT="${TRACE_DIR}/dlserver-trace-${TRACE_STAMP}.txt"
     trace-cmd report "$TRACE_OUTPUT" > "$TRACE_REPORT"
 
     log_info "Trace binary: $TRACE_OUTPUT (can be opened with kernelshark)"
