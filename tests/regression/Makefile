@@ -5,7 +5,8 @@ CFLAGS ?= -Wall -O2
 LDFLAGS ?= -lpthread
 
 TARGETS = pi-cfs-bug-repro test_dl_replenish_bug test_dl_total_bw_leak \
-	  test_dl_keep_params_underflow test_dl_hotplug_bw
+	  test_dl_keep_params_underflow test_dl_hotplug_bw \
+	  test_dl_zombie_bw_leak
 
 .PHONY: all clean
 
@@ -24,6 +25,9 @@ test_dl_keep_params_underflow: test_dl_keep_params_underflow.c
 	$(CC) $(CFLAGS) -o $@ $<
 
 test_dl_hotplug_bw: test_dl_hotplug_bw.c
+	$(CC) $(CFLAGS) -o $@ $<
+
+test_dl_zombie_bw_leak: test_dl_zombie_bw_leak.c
 	$(CC) $(CFLAGS) -o $@ $<
 
 clean:
