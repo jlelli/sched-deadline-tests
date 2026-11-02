@@ -79,6 +79,57 @@ dump_on_oops() {
   echo 1 > /proc/sys/kernel/ftrace_dump_on_oops
 }
 
+# Save dmesg cursor before a test so we can extract new messages after.
+# Usage:
+#   dmesg_save_cursor
+#   ./some_test
+#   dmesg_check_crash
+dmesg_save_cursor() {
+  _DMESG_CURSOR=$(dmesg --show-delta 2>/dev/null | wc -l)
+}
+
+# Check dmesg for oops/panic/BUG since the saved cursor and dump them.
+# Returns 0 if clean, 1 if crash detected.
+dmesg_check_crash() {
+  local crash_log="${TNAME:-test}_crash.log"
+  local new_msgs
+
+  new_msgs=$(dmesg | tail -n +$((_DMESG_CURSOR + 1)) 2>/dev/null)
+  if echo "$new_msgs" | grep -qiE 'Oops:|BUG:|kernel panic|divide error|general protection fault|unable to handle'; then
+    echo "$new_msgs" > "$crash_log"
+    echo "KERNEL CRASH DETECTED — dmesg saved to $crash_log"
+    echo "--- crash excerpt ---"
+    echo "$new_msgs" | grep -iE -A5 'Oops:|BUG:|kernel panic|divide error|general protection fault|RIP:' | head -30
+    echo "--- end excerpt ---"
+    return 1
+  fi
+  return 0
+}
+
+# Run a test binary with a timeout and crash detection.
+# Usage: run_test_safe <timeout_secs> <command> [args...]
+# Returns: test exit code, or 1 if crash/timeout detected.
+run_test_safe() {
+  local tout=$1
+  shift
+
+  dmesg_save_cursor
+  timeout "$tout" "$@"
+  local rc=$?
+
+  if [ $rc -eq 124 ]; then
+    echo "TEST TIMEOUT after ${tout}s"
+    dmesg_check_crash
+    return 1
+  fi
+
+  if ! dmesg_check_crash; then
+    return 1
+  fi
+
+  return $rc
+}
+
 test_failed() {
   echo "TEST_FAILED"
   trace_write "TEST_FAILED"

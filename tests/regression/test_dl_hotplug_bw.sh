@@ -45,7 +45,7 @@ trace_start
 test_start
 trace_write "Running test_dl_hotplug_bw"
 
-./test_dl_hotplug_bw
+run_test_safe 60 ./test_dl_hotplug_bw
 RES=$?
 
 if [ $RES -eq 0 ]; then
