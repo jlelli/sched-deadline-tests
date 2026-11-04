@@ -200,6 +200,7 @@ echo
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 DMESG_LOG="${TEST_DIR}/dmesg-${TIMESTAMP}.log"
 OUTPUT_LOG="${TEST_DIR}/output-${TIMESTAMP}.log"
+CONSOLE_LOG="${TEST_DIR}/console-${TIMESTAMP}.log"
 # Export paths for debug tools (dl_bw_dump.py needs vmlinux from build, script from source)
 TEST_CMD="uname -a && export VMLINUX='${VMLINUX_PATH}' && export DL_BW_DUMP='${DL_BW_DUMP_PATH}' && dmesg -C && make clean && make && ./run-tests.sh"
 [ -n "$CATEGORY" ] && TEST_CMD+=" --category $CATEGORY"
@@ -212,6 +213,7 @@ print_color "$BLUE" "Booting VM and running tests..."
 print_color "$YELLOW" "Command: $TEST_CMD"
 print_color "$BLUE" "Output will be saved to: $OUTPUT_LOG"
 print_color "$BLUE" "dmesg will be saved to: $DMESG_LOG"
+print_color "$BLUE" "Console will be saved to: $CONSOLE_LOG"
 echo
 
 # Build KVM argument
@@ -228,18 +230,22 @@ if [ ! -f "$BZIMAGE" ]; then
 fi
 
 # Run virtme-ng with explicit kernel path
+# Capture all vng output (test + kernel console) on the host side so that
+# panic/oops traces survive a VM crash even when in-guest dmesg collection
+# cannot run.
 vng --run "$BZIMAGE" \
     --force-9p \
     --rwdir "$TEST_DIR" \
     --cwd "$TEST_DIR" \
     --memory "$MEMORY" \
     --cpus "$CPUS" \
-    --append "sched_verbose loglevel=8 console=ttyS0" \
+    --verbose \
+    --append "sched_verbose loglevel=8 console=ttyS0 oops=panic panic=-1" \
     $KVM_ARG \
     $VIRTME_OPTS \
-    --exec "$TEST_CMD"
+    --exec "$TEST_CMD" 2>&1 | tee "${CONSOLE_LOG}"
 
-EXIT_CODE=$?
+EXIT_CODE=${PIPESTATUS[0]}
 
 echo
 if [ $EXIT_CODE -eq 0 ]; then
