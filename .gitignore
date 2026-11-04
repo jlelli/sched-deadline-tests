@@ -33,6 +33,11 @@ tests/group-sched/burn
 # Test binaries - regression
 tests/regression/pi-cfs-bug-repro
 tests/regression/test_dl_replenish_bug
+tests/regression/test_dl_total_bw_leak
+tests/regression/test_dl_keep_params_underflow
+tests/regression/test_dl_hotplug_bw
+tests/regression/test_dl_zombie_bw_leak
+tests/regression/test_dl_cpuset_bw_move
 
 # Tool binaries
 tools/dl_getparam
